@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backup Client - Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+      --blue-500: #3b82f6;
+      --blue-600: #2563eb;
+      --green-500: #22c55e;
+      --green-600: #16a34a;
+      --red-500: #ef4444;
+      --orange-500: #f97316;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--slate-50);
+      color: var(--slate-900);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--slate-200);
+      padding: 1rem 2rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--slate-900);
+    }
+
+    .logo-badge {
+      background: var(--slate-900);
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .nav-link {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--slate-600);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-link:hover {
+      background: var(--slate-100);
+      color: var(--slate-900);
+    }
+
+    .nav-link.active {
+      background: var(--slate-900);
+      color: white;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid var(--slate-200);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+
+    .stat-icon.blue { background: rgba(59, 130, 246, 0.1); color: var(--blue-600); }
+    .stat-icon.green { background: rgba(34, 197, 94, 0.1); color: var(--green-600); }
+    .stat-icon.orange { background: rgba(249, 115, 22, 0.1); color: var(--orange-500); }
+
+    .stat-info h3 {
+      font-size: 0.875rem;
+      color: var(--slate-600);
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--slate-900);
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--slate-500);
+      margin-top: 0.5rem;
+    }
+
+    /* Main Content */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid var(--slate-200);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--slate-200);
+    }
+
+    .card-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--slate-900);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .info-icon {
+      cursor: help;
+      color: var(--slate-400);
+      font-size: 0.875rem;
+      position: relative;
+    }
+
+    .info-icon:hover {
+      color: var(--blue-600);
+    }
+
+    /* Backup Controls */
+    .backup-sources {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .source-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      background: var(--slate-50);
+      border-radius: 8px;
+      border: 1px solid var(--slate-200);
+    }
+
+    .source-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex: 1;
+    }
+
+    .source-icon {
+      width: 36px;
+      height: 36px;
+      background: white;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--slate-600);
+    }
+
+    .source-path {
+      font-weight: 500;
+      color: var(--slate-900);
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--blue-600);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--blue-500);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-success {
+      background: var(--green-600);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: var(--green-500);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--slate-200);
+      color: var(--slate-700);
+    }
+
+    .btn-secondary:hover {
+      background: var(--slate-300);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .backup-all {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1rem;
+      justify-content: center;
+    }
+
+    /* Status */
+    .status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--slate-100);
+    }
+
+    .status-item:last-child {
+      border-bottom: none;
+    }
+
+    .status-label {
+      color: var(--slate-600);
+      font-size: 0.875rem;
+    }
+
+    .status-value {
+      font-weight: 500;
+      color: var(--slate-900);
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-enabled {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--green-600);
+    }
+
+    .badge-disabled {
+      background: rgba(148, 163, 184, 0.1);
+      color: var(--slate-600);
+    }
+
+    /* Recent Activity */
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .activity-item {
+      display: flex;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--slate-50);
+      border-radius: 8px;
+      border-left: 3px solid var(--green-500);
+    }
+
+    .activity-icon {
+      width: 32px;
+      height: 32px;
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--green-600);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .activity-content {
+      flex: 1;
+    }
+
+    .activity-title {
+      font-weight: 500;
+      color: var(--slate-900);
+      margin-bottom: 0.25rem;
+    }
+
+    .activity-time {
+      font-size: 0.75rem;
+      color: var(--slate-500);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: var(--slate-400);
+    }
+
+    /* Progress */
+    .progress-bar {
+      height: 8px;
+      background: var(--slate-200);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue-600), var(--blue-500));
+      transition: width 0.3s;
+    }
+
+    /* Alert */
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .alert-info {
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--blue-600);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .alert-success {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--green-600);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .alert-error {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--red-500);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <div class="logo-badge">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <span>Backup Client</span>
+      </div>
+      <nav class="nav-links">
+        <a href="/" class="nav-link active">
+          <i class="fas fa-home"></i>
+          Dashboard
+        </a>
+        <a href="/settings" class="nav-link">
+          <i class="fas fa-cog"></i>
+          Settings
+        </a>
+        <a href="/logs" class="nav-link">
+          <i class="fas fa-file-alt"></i>
+          Logs
+        </a>
+        <a href="/help" class="nav-link">
+          <i class="fas fa-question-circle"></i>
+          Help
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Container -->
+  <div class="container">
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-info">
+            <h3>Backup Sources</h3>
+            <div class="stat-value"><%= status.sources.length %></div>
+            <div class="stat-label">Configured folders</div>
+          </div>
+          <div class="stat-icon blue">
+            <i class="fas fa-folder"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-info">
+            <h3>Server Status</h3>
+            <div class="stat-value">
+              <% if (config?.server?.url) { %>
+                <i class="fas fa-check-circle" style="color: var(--green-500); font-size: 1.5rem;"></i>
+              <% } else { %>
+                <i class="fas fa-times-circle" style="color: var(--red-500); font-size: 1.5rem;"></i>
+              <% } %>
+            </div>
+            <div class="stat-label"><%= status.serverUrl %></div>
+          </div>
+          <div class="stat-icon green">
+            <i class="fas fa-server"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <div class="stat-info">
+            <h3>Auto Backup</h3>
+            <div class="stat-value">
+              <span class="status-badge <%= status.scheduleEnabled ? 'badge-enabled' : 'badge-disabled' %>">
+                <%= status.scheduleEnabled ? 'Enabled' : 'Disabled' %>
+              </span>
+            </div>
+            <div class="stat-label">
+              <% if (status.scheduleEnabled) { %>
+                <%= status.scheduleTimes.join(', ') %>
+              <% } else { %>
+                Not scheduled
+              <% } %>
+            </div>
+          </div>
+          <div class="stat-icon orange">
+            <i class="fas fa-clock"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alert -->
+    <div id="alertBox" class="hidden"></div>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+      <!-- Backup Controls -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <i class="fas fa-play-circle"></i>
+            Manual Backup
+            <i class="fas fa-info-circle info-icon" title="Click 'Backup Now' to start backing up your files immediately. You can backup individual folders or all configured sources at once."></i>
+          </h2>
+        </div>
+
+        <% if (status.sources.length === 0) { %>
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <div>
+              <strong>No backup sources configured.</strong><br>
+              Go to <a href="/settings" style="color: var(--blue-600);">Settings</a> to add folders to backup.
+            </div>
+          </div>
+        <% } else { %>
+          <div class="backup-sources">
+            <% status.sources.forEach(source => { %>
+              <div class="source-item">
+                <div class="source-info">
+                  <div class="source-icon">
+                    <i class="fas fa-folder"></i>
+                  </div>
+                  <div>
+                    <div class="source-path"><%= source %></div>
+                  </div>
+                </div>
+                <button class="btn btn-primary" onclick="backupSource('<%= source %>')">
+                  <i class="fas fa-upload"></i>
+                  Backup Now
+                </button>
+              </div>
+            <% }) %>
+          </div>
+
+          <button class="btn btn-success backup-all" onclick="backupAll()">
+            <i class="fas fa-rocket"></i>
+            Backup All Sources
+          </button>
+        <% } %>
+
+        <!-- Progress -->
+        <div id="backupProgress" class="hidden" style="margin-top: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span style="color: var(--slate-600); font-size: 0.875rem;">Backup in progress...</span>
+            <span id="progressText" style="color: var(--slate-600); font-size: 0.875rem;">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Status -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <i class="fas fa-info-circle"></i>
+            System Status
+          </h2>
+        </div>
+
+        <div class="status-list">
+          <div class="status-item">
+            <span class="status-label">Server Connection</span>
+            <button class="btn btn-secondary" onclick="testConnection()">
+              <i class="fas fa-plug"></i>
+              Test
+            </button>
+          </div>
+          
+          <div class="status-item">
+            <span class="status-label">Scheduled Backups</span>
+            <span class="status-badge <%= status.scheduleEnabled ? 'badge-enabled' : 'badge-disabled' %>">
+              <%= status.scheduleEnabled ? 'Running' : 'Stopped' %>
+            </span>
+          </div>
+
+          <div class="status-item">
+            <span class="status-label">Last Backup</span>
+            <span class="status-value">
+              <% if (status.lastBackup) { %>
+                <%= new Date(status.lastBackup.timestamp).toLocaleString() %>
+              <% } else { %>
+                Never
+              <% } %>
+            </span>
+          </div>
+
+          <div class="status-item">
+            <span class="status-label">Quick Actions</span>
+            <div style="display: flex; gap: 0.5rem;">
+              <a href="/logs" class="btn btn-secondary">
+                <i class="fas fa-file-alt"></i>
+                View Logs
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--slate-200);">
+          <a href="/setup-windows" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            <i class="fab fa-windows"></i>
+            Setup Auto Backup on Windows
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card" style="margin-top: 1.5rem;">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="fas fa-history"></i>
+          Recent Backups
+        </h2>
+        <a href="/logs?type=history" class="btn btn-secondary">
+          <i class="fas fa-external-link-alt"></i>
+          View All
+        </a>
+      </div>
+
+      <div class="activity-list">
+        <% if (status.recentBackups.length === 0) { %>
+          <div class="empty-state">
+            <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+            <p>No backup history yet</p>
+            <p style="font-size: 0.875rem;">Run your first backup to see activity here</p>
+          </div>
+        <% } else { %>
+          <% status.recentBackups.slice(0, 5).reverse().forEach(backup => { %>
+            <div class="activity-item">
+              <div class="activity-icon">
+                <i class="fas fa-check"></i>
+              </div>
+              <div class="activity-content">
+                <div class="activity-title">Backup completed successfully</div>
+                <div class="activity-time">
+                  <%= new Date(backup.timestamp).toLocaleString() %>
+                  <% if (backup.data) { %>
+                    · <%= backup.data.stats?.uploadedFiles || 0 %> files
+                    <% if (backup.data.duration) { %>
+                      · <%= Math.round(backup.data.duration / 1000) %>s
+                    <% } %>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showAlert(message, type = 'info') {
+      const alertBox = document.getElementById('alertBox');
+      alertBox.className = `alert alert-${type}`;
+      alertBox.innerHTML = `
+        <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+        <div>${message}</div>
+      `;
+      alertBox.classList.remove('hidden');
+      
+      setTimeout(() => {
+        alertBox.classList.add('hidden');
+      }, 5000);
+    }
+
+    async function backupSource(source) {
+      const btn = event.target.closest('button');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Backing up...';
+
+      try {
+        const response = await fetch('/api/backup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          showAlert(`Backup started for: ${source}`, 'success');
+          setTimeout(() => location.reload(), 2000);
+        } else {
+          showAlert(`Backup failed: ${result.message}`, 'error');
+        }
+      } catch (err) {
+        showAlert(`Error: ${err.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-upload"></i> Backup Now';
+      }
+    }
+
+    async function backupAll() {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Backing up all sources...';
+
+      try {
+        const sources = <%= JSON.stringify(status.sources) %>;
+        
+        for (const source of sources) {
+          const response = await fetch('/api/backup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source })
+          });
+
+          const result = await response.json();
+          if (!result.success) {
+            throw new Error(`Failed to backup ${source}`);
+          }
+        }
+
+        showAlert('All backups completed successfully!', 'success');
+        setTimeout(() => location.reload(), 2000);
+      } catch (err) {
+        showAlert(`Error: ${err.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-rocket"></i> Backup All Sources';
+      }
+    }
+
+    async function testConnection() {
+      const btn = event.target.closest('button');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Testing...';
+
+      try {
+        const response = await fetch('/api/test-connection');
+        const result = await response.json();
+        
+        showAlert(result.message, result.success ? 'success' : 'error');
+      } catch (err) {
+        showAlert(`Connection test failed: ${err.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plug"></i> Test';
+      }
+    }
+  </script>
+</body>
+</html>

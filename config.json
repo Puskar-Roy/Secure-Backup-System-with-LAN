@@ -1,0 +1,46 @@
+{
+  "server": {
+    "url": "http://localhost:8080",
+    "timeout": 60000,
+    "retryAttempts": 3,
+    "retryDelay": 5000
+  },
+  "backup": {
+    "sources": [
+      "/media/poolu/UBUNTU/Personal Projects/Testing-Backup"
+    ],
+    "exclusions": [
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/temp/**",
+      "**/tmp/**",
+      "**/*.tmp",
+      "**/.DS_Store",
+      "**/Thumbs.db",
+      "**/.cache/**",
+      "**/Cache/**",
+      "**/*.log"
+    ],
+    "parallelUploads": 3,
+    "chunkSize": 5242880
+  },
+  "schedule": {
+    "enabled": false,
+    "times": [
+      "02:00",
+      "14:00",
+      "22:00"
+    ],
+    "timezone": "local"
+  },
+  "retention": {
+    "keepDays": 30,
+    "keepWeeks": 12,
+    "keepMonths": 12
+  },
+  "logging": {
+    "level": "info",
+    "maxLogSize": 10485760,
+    "keepLogs": 30
+  }
+}

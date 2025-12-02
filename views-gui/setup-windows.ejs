@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Auto-Backup on Windows</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+      --blue-500: #3b82f6;
+      --blue-600: #2563eb;
+      --green-500: #22c55e;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--slate-50);
+      color: var(--slate-900);
+      line-height: 1.6;
+    }
+
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--slate-200);
+      padding: 1rem 2rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--slate-900);
+    }
+
+    .logo-badge {
+      background: var(--slate-900);
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .nav-link {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--slate-600);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-link:hover {
+      background: var(--slate-100);
+      color: var(--slate-900);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #0078D4, #0063B1);
+      color: white;
+      padding: 3rem 2rem;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .hero h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .hero p {
+      font-size: 1.125rem;
+      opacity: 0.9;
+    }
+
+    .help-section {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--slate-200);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--slate-900);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .step-item {
+      display: flex;
+      gap: 1.5rem;
+      padding: 1.5rem;
+      background: var(--slate-50);
+      border-radius: 8px;
+      border-left: 4px solid var(--blue-600);
+    }
+
+    .step-number {
+      width: 48px;
+      height: 48px;
+      background: var(--blue-600);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .step-content h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--slate-900);
+      margin-bottom: 0.75rem;
+    }
+
+    .step-content p {
+      color: var(--slate-600);
+      margin-bottom: 1rem;
+      line-height: 1.7;
+    }
+
+    .screenshot {
+      margin: 1rem 0;
+      padding: 1rem;
+      background: white;
+      border: 2px solid var(--slate-200);
+      border-radius: 8px;
+    }
+
+    .screenshot img {
+      max-width: 100%;
+      border-radius: 4px;
+    }
+
+    .code-block {
+      background: var(--slate-900);
+      color: var(--slate-100);
+      padding: 1rem;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+      border: 2px solid var(--slate-700);
+    }
+
+    .code-block code {
+      display: block;
+      white-space: pre-wrap;
+    }
+
+    .tip-box {
+      background: rgba(34, 197, 94, 0.1);
+      border: 2px solid rgba(34, 197, 94, 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      display: flex;
+      gap: 0.75rem;
+      align-items: start;
+    }
+
+    .tip-icon {
+      color: var(--green-500);
+      flex-shrink: 0;
+      font-size: 1.25rem;
+    }
+
+    .warning-box {
+      background: rgba(249, 115, 22, 0.1);
+      border: 2px solid rgba(249, 115, 22, 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      display: flex;
+      gap: 0.75rem;
+      align-items: start;
+    }
+
+    .warning-icon {
+      color: #f97316;
+      flex-shrink: 0;
+      font-size: 1.25rem;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      background: var(--blue-600);
+      color: white;
+    }
+
+    .btn:hover {
+      background: var(--blue-500);
+      transform: translateY(-1px);
+    }
+
+    .key-visual {
+      display: inline-flex;
+      padding: 0.25rem 0.5rem;
+      background: white;
+      border: 2px solid var(--slate-300);
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-weight: 600;
+      color: var(--slate-900);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    ul {
+      margin-left: 1.5rem;
+      color: var(--slate-600);
+    }
+
+    ul li {
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+    }
+
+    strong {
+      color: var(--slate-900);
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <div class="logo-badge">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <span>Backup Client</span>
+      </div>
+      <nav class="nav-links">
+        <a href="/" class="nav-link">
+          <i class="fas fa-home"></i>
+          Dashboard
+        </a>
+        <a href="/settings" class="nav-link">
+          <i class="fas fa-cog"></i>
+          Settings
+        </a>
+        <a href="/help" class="nav-link">
+          <i class="fas fa-question-circle"></i>
+          Help
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="hero">
+      <h1><i class="fab fa-windows"></i> Setup Auto-Backup on Windows</h1>
+      <p>Make your backups run automatically when Windows starts</p>
+    </div>
+
+    <!-- Introduction -->
+    <div class="help-section">
+      <h2 class="section-title">
+        <i class="fas fa-info-circle"></i>
+        What This Guide Does
+      </h2>
+      <p style="color: var(--slate-600); font-size: 1.0625rem; line-height: 1.7; margin-bottom: 1rem;">
+        This guide will help you set up the Backup Client to start automatically when Windows starts, so your scheduled backups 
+        run even if you forget to open the program. This is important for automatic backups to work reliably!
+      </p>
+
+      <div class="tip-box">
+        <div class="tip-icon"><i class="fas fa-lightbulb"></i></div>
+        <div>
+          <strong>Before you start:</strong> Make sure you have already configured your backup sources and schedule in the Settings page.
+        </div>
+      </div>
+    </div>
+
+    <!-- Method 1: Task Scheduler (Recommended) -->
+    <div class="help-section">
+      <h2 class="section-title">
+        <i class="fas fa-star"></i>
+        Method 1: Using Task Scheduler (Recommended)
+      </h2>
+      <p style="color: var(--slate-600); margin-bottom: 1.5rem;">
+        Task Scheduler is Windows' built-in tool for running programs automatically. This is the most reliable method.
+      </p>
+
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Open Task Scheduler</h3>
+            <p>Press <span class="key-visual">⊞ Win</span> + <span class="key-visual">R</span> on your keyboard, then type:</p>
+            <div class="code-block"><code>taskschd.msc</code></div>
+            <p>Press <span class="key-visual">Enter</span> to open Task Scheduler.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>Create a New Task</h3>
+            <p>In Task Scheduler:</p>
+            <ul>
+              <li>Click <strong>"Create Basic Task..."</strong> in the right panel</li>
+              <li>Name it: <strong>"Backup Client Auto Start"</strong></li>
+              <li>Description: <strong>"Starts backup client when Windows starts"</strong></li>
+              <li>Click <strong>"Next"</strong></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Set the Trigger</h3>
+            <p>Choose when the task should run:</p>
+            <ul>
+              <li>Select <strong>"When the computer starts"</strong></li>
+              <li>Click <strong>"Next"</strong></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h3>Set the Action</h3>
+            <p>Choose what program to run:</p>
+            <ul>
+              <li>Select <strong>"Start a program"</strong></li>
+              <li>Click <strong>"Next"</strong></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">5</div>
+          <div class="step-content">
+            <h3>Configure the Program</h3>
+            <p>Enter the program details. <strong>Important:</strong> Replace the paths with your actual installation location.</p>
+            
+            <p><strong>Program/script:</strong></p>
+            <div class="code-block"><code>node.exe</code></div>
+            
+            <p><strong>Add arguments:</strong></p>
+            <div class="code-block"><code>client.js daemon</code></div>
+            
+            <p><strong>Start in:</strong></p>
+            <div class="code-block"><code>C:\path\to\backup-client</code></div>
+            
+            <div class="tip-box">
+              <div class="tip-icon"><i class="fas fa-info-circle"></i></div>
+              <div>
+                <strong>Where is my backup client installed?</strong><br>
+                Look for the folder containing <code>client.js</code>. Common locations:<br>
+                • <code>C:\Program Files\backup-client</code><br>
+                • <code>C:\Users\YourName\Documents\backup-client</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">6</div>
+          <div class="step-content">
+            <h3>Configure Advanced Settings</h3>
+            <p>Before clicking "Finish", check the box that says:</p>
+            <div class="code-block"><code>☑ Open the Properties dialog for this task when I click Finish</code></div>
+            <p>Click <strong>"Finish"</strong></p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">7</div>
+          <div class="step-content">
+            <h3>Adjust Additional Settings</h3>
+            <p>In the Properties dialog that opens:</p>
+            <ul>
+              <li>Go to the <strong>"General"</strong> tab</li>
+              <li>Check: <strong>"Run whether user is logged on or not"</strong></li>
+              <li>Check: <strong>"Run with highest privileges"</strong></li>
+              <li>Uncheck: <strong>"Hidden"</strong> (so you can see if it's running)</li>
+            </ul>
+            <p>Click <strong>"OK"</strong> and enter your Windows password if prompted.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">8</div>
+          <div class="step-content">
+            <h3>Test Your Setup</h3>
+            <p>To make sure it works:</p>
+            <ul>
+              <li>Find your task in the Task Scheduler list</li>
+              <li>Right-click on it and select <strong>"Run"</strong></li>
+              <li>Open this GUI (http://localhost:3000) and check if backups are scheduled</li>
+              <li>Check the Dashboard to see if the system is running</li>
+            </ul>
+            
+            <div class="tip-box">
+              <div class="tip-icon"><i class="fas fa-check-circle"></i></div>
+              <div>
+                <strong>Success!</strong> The backup client will now start automatically every time Windows starts. 
+                You don't need to do anything else - your scheduled backups will run automatically!
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Method 2: Startup Folder -->
+    <div class="help-section">
+      <h2 class="section-title">
+        <i class="fas fa-folder"></i>
+        Method 2: Using Startup Folder (Simpler, but less reliable)
+      </h2>
+      <p style="color: var(--slate-600); margin-bottom: 1.5rem;">
+        This method is easier but only works when you log in to Windows. Use this if Method 1 seems too complicated.
+      </p>
+
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Create a Startup Script</h3>
+            <p>We need to create a simple script file:</p>
+            <ul>
+              <li>Open Notepad (search for "Notepad" in the Start menu)</li>
+              <li>Copy and paste this code (replace the path with your installation location):</li>
+            </ul>
+            <div class="code-block"><code>@echo off
+cd /d "C:\path\to\backup-client"
+start "" node client.js daemon</code></div>
+            <p>Save this file as <code>start-backup.bat</code> in your backup-client folder</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>Open Startup Folder</h3>
+            <p>Press <span class="key-visual">⊞ Win</span> + <span class="key-visual">R</span> and type:</p>
+            <div class="code-block"><code>shell:startup</code></div>
+            <p>Press <span class="key-visual">Enter</span>. This opens your Startup folder.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Add Shortcut to Startup</h3>
+            <p>Create a shortcut to your batch file:</p>
+            <ul>
+              <li>Find your <code>start-backup.bat</code> file</li>
+              <li>Right-click it and select <strong>"Create shortcut"</strong></li>
+              <li>Move or copy this shortcut to the Startup folder that opened in Step 2</li>
+            </ul>
+            
+            <div class="tip-box">
+              <div class="tip-icon"><i class="fas fa-check-circle"></i></div>
+              <div>
+                <strong>Done!</strong> The backup client will now start automatically when you log in to Windows.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="warning-box">
+        <div class="warning-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div>
+          <strong>Note:</strong> With this method, backups will only run when you're logged in to Windows. 
+          If someone else logs in, or if the computer is at the login screen, backups won't run. 
+          For more reliable backups, use Method 1 (Task Scheduler) instead.
+        </div>
+      </div>
+    </div>
+
+    <!-- Verification -->
+    <div class="help-section">
+      <h2 class="section-title">
+        <i class="fas fa-check-circle"></i>
+        Verify Everything is Working
+      </h2>
+      
+      <div class="tip-box">
+        <div class="tip-icon"><i class="fas fa-clipboard-check"></i></div>
+        <div>
+          <strong>Checklist - Make sure all of these are true:</strong>
+          <ul style="margin-top: 0.5rem; margin-bottom: 0;">
+            <li>✅ The GUI opens at http://localhost:3000</li>
+            <li>✅ Dashboard shows "Auto Backup: Enabled"</li>
+            <li>✅ You can see backup times listed on the Dashboard</li>
+            <li>✅ Recent backups appear in the activity list (after the scheduled time)</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 style="margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--slate-900);">Troubleshooting</h3>
+      
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+          <strong style="color: var(--slate-900);">❌ "It's not starting automatically"</strong>
+          <ul style="margin-top: 0.5rem;">
+            <li>Double-check the path in Task Scheduler or your batch file</li>
+            <li>Make sure Node.js is installed and <code>node.exe</code> is in your system PATH</li>
+            <li>Try running the task manually in Task Scheduler to see any errors</li>
+          </ul>
+        </div>
+
+        <div>
+          <strong style="color: var(--slate-900);">❌ "Backups aren't running at scheduled times"</strong>
+          <ul style="margin-top: 0.5rem;">
+            <li>Check Settings - make sure "Enable Automatic Backups" is ON</li>
+            <li>Make sure your computer is turned on at the scheduled time</li>
+            <li>Check the Logs page for any error messages</li>
+          </ul>
+        </div>
+
+        <div>
+          <strong style="color: var(--slate-900);">❌ "Task Scheduler asks for password"</strong>
+          <ul style="margin-top: 0.5rem;">
+            <li>This is normal - enter your Windows login password</li>
+            <li>This allows the task to run even when you're not logged in</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next Steps -->
+    <div class="help-section" style="text-align: center;">
+      <h2 class="section-title" style="justify-content: center;">
+        <i class="fas fa-rocket"></i>
+        You're All Set!
+      </h2>
+      <p style="color: var(--slate-600); font-size: 1.125rem; margin-bottom: 1.5rem;">
+        Your backup client is now configured to run automatically. Your files are protected!
+      </p>
+      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="/" class="btn">
+          <i class="fas fa-home"></i>
+          Go to Dashboard
+        </a>
+        <a href="/help" class="btn" style="background: var(--slate-600);">
+          <i class="fas fa-question-circle"></i>
+          Back to Help
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

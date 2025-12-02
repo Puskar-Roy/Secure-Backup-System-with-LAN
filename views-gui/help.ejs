@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backup Client - Help</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+      --blue-500: #3b82f6;
+      --blue-600: #2563eb;
+      --green-500: #22c55e;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: var(--slate-50);
+      color: var(--slate-900);
+      line-height: 1.6;
+    }
+
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--slate-200);
+      padding: 1rem 2rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--slate-900);
+    }
+
+    .logo-badge {
+      background: var(--slate-900);
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .nav-link {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--slate-600);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-link:hover {
+      background: var(--slate-100);
+      color: var(--slate-900);
+    }
+
+    .nav-link.active {
+      background: var(--slate-900);
+      color: white;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, var(--blue-600), var(--blue-500));
+      color: white;
+      padding: 3rem 2rem;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .hero h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .hero p {
+      font-size: 1.125rem;
+      opacity: 0.9;
+    }
+
+    .help-section {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--slate-200);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--slate-900);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--blue-600);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+
+    .feature-grid {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .feature-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1.5rem;
+      background: var(--slate-50);
+      border-radius: 8px;
+      border-left: 3px solid var(--blue-500);
+    }
+
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      background: white;
+      color: var(--blue-600);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .feature-content h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--slate-900);
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-content p {
+      color: var(--slate-600);
+      line-height: 1.6;
+    }
+
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .step-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--slate-50);
+      border-radius: 8px;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      background: var(--blue-600);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .step-content h4 {
+      font-weight: 600;
+      color: var(--slate-900);
+      margin-bottom: 0.25rem;
+    }
+
+    .step-content p {
+      color: var(--slate-600);
+      font-size: 0.9375rem;
+    }
+
+    .code-block {
+      background: var(--slate-900);
+      color: var(--slate-100);
+      padding: 1rem;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+    }
+
+    .tip-box {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .tip-icon {
+      color: var(--green-500);
+      flex-shrink: 0;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      background: var(--blue-600);
+      color: white;
+    }
+
+    .btn:hover {
+      background: var(--blue-500);
+      transform: translateY(-1px);
+    }
+
+    .btn-block {
+      width: 100%;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <div class="logo-badge">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <span>Backup Client</span>
+      </div>
+      <nav class="nav-links">
+        <a href="/" class="nav-link">
+          <i class="fas fa-home"></i>
+          Dashboard
+        </a>
+        <a href="/settings" class="nav-link">
+          <i class="fas fa-cog"></i>
+          Settings
+        </a>
+        <a href="/logs" class="nav-link">
+          <i class="fas fa-file-alt"></i>
+          Logs
+        </a>
+        <a href="/help" class="nav-link active">
+          <i class="fas fa-question-circle"></i>
+          Help
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="hero">
+      <h1><i class="fas fa-question-circle"></i> Help & Documentation</h1>
+      <p>Everything you need to know about using the Backup Client</p>
+    </div>
+
+    <!-- What is This? -->
+    <div class="help-section">
+      <h2 class="section-title">
+        <div class="section-icon"><i class="fas fa-info-circle"></i></div>
+        What is the Backup Client?
+      </h2>
+      <p style="color: var(--slate-600); font-size: 1.0625rem; line-height: 1.7;">
+        The Backup Client is a simple program that automatically copies your important files to a safe location (backup server). 
+        Think of it like making a copy of your photos, documents, and other files so that if something happens to your computer, 
+        you won't lose them. It works quietly in the background and can run automatically at times you choose.
+      </p>
+    </div>
+
+    <!-- Features Explained -->
+    <div class="help-section">
+      <h2 class="section-title">
+        <div class="section-icon"><i class="fas fa-star"></i></div>
+        Features Explained (In Simple Terms)
+      </h2>
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fas fa-play-circle"></i></div>
+          <div class="feature-content">
+            <h3>Manual Backup</h3>
+            <p>
+              <strong>What it does:</strong> Copies your files right now when you click the "Backup Now" button.<br>
+              <strong>When to use:</strong> When you want to make a backup immediately, like after working on important documents.<br>
+              <strong>How to use:</strong> Go to Dashboard → Click "Backup Now" button → Wait for it to finish.
+            </p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fas fa-clock"></i></div>
+          <div class="feature-content">
+            <h3>Automatic Backup</h3>
+            <p>
+              <strong>What it does:</strong> Automatically backs up your files at specific times (like 2 AM every day) without you doing anything.<br>
+              <strong>When to use:</strong> For regular, worry-free backups while you sleep or when you're not using the computer.<br>
+              <strong>How to use:</strong> Go to Settings → Enable "Automatic Backups" → Choose times → Save.
+            </p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fas fa-folder"></i></div>
+          <div class="feature-content">
+            <h3>Backup Sources</h3>
+            <p>
+              <strong>What it does:</strong> Tells the program which folders you want to backup.<br>
+              <strong>Examples:</strong> Your Documents folder, Pictures folder, or any folder with important files.<br>
+              <strong>How to use:</strong> Go to Settings → Click "Add Folder" → Type the folder path → Save.
+            </p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fas fa-ban"></i></div>
+          <div class="feature-content">
+            <h3>File Exclusions</h3>
+            <p>
+              <strong>What it does:</strong> Skips certain files or folders that you don't want to backup.<br>
+              <strong>Examples:</strong> Temporary files, system files, or very large folders you don't need backed up.<br>
+              <strong>Note:</strong> Common exclusions (like temporary internet files) are already pre-configured for you.
+            </p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fas fa-server"></i></div>
+          <div class="feature-content">
+            <h3>Server Connection</h3>
+            <p>
+              <strong>What it does:</strong> Connects to the computer that stores your backups.<br>
+              <strong>Think of it like:</strong> The address of the safe where your backup copies are stored.<br>
+              <strong>How to use:</strong> Usually pre-configured by your IT person or tech support. You can test it by clicking the "Test" button.
+            </p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fas fa-file-alt"></i></div>
+          <div class="feature-content">
+            <h3>Logs</h3>
+            <p>
+              <strong>What it does:</strong> Keeps a record of all backups - what was backed up, when, and if there were any problems.<br>
+              <strong>When to use:</strong> To check if your backups are working correctly or to troubleshoot issues.<br>
+              <strong>How to use:</strong> Go to Dashboard → Click "View Logs" → See the history.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Getting Started -->
+    <div class="help-section">
+      <h2 class="section-title">
+        <div class="section-icon"><i class="fas fa-rocket"></i></div>
+        Getting Started (First Time Setup)
+      </h2>
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h4>Add Folders to Backup</h4>
+            <p>Go to Settings and click "Add Folder". Type in the folders you want to protect, like C:\Users\YourName\Documents</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h4>Test Your First Backup</h4>
+            <p>Go back to Dashboard and click "Backup Now" to make sure everything works. This might take a few minutes.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h4>Enable Automatic Backups</h4>
+            <p>In Settings, turn on "Enable Automatic Backups" and choose when you want backups to run (we recommend 2:00 AM).</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h4>Set Up Auto-Start (Optional)</h4>
+            <p>Click the button below to learn how to make the backup program start automatically when Windows starts.</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem;">
+        <a href="/setup-windows" class="btn btn-block">
+          <i class="fab fa-windows"></i>
+          Setup Automatic Startup on Windows
+        </a>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="help-section">
+      <h2 class="section-title">
+        <div class="section-icon"><i class="fas fa-question"></i></div>
+        Frequently Asked Questions
+      </h2>
+
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <div>
+          <h3 style="color: var(--slate-900); margin-bottom: 0.5rem;">❓ How long does a backup take?</h3>
+          <p style="color: var(--slate-600);">It depends on how many files you have. The first backup might take a while (30 minutes to a few hours), but after that, only new or changed files are backed up, which is usually very quick (a few minutes).</p>
+        </div>
+
+        <div>
+          <h3 style="color: var(--slate-900); margin-bottom: 0.5rem;">❓ Can I use my computer while it's backing up?</h3>
+          <p style="color: var(--slate-600);">Yes! The backup runs in the background. You might notice your computer is slightly slower if you're backing up very large files.</p>
+        </div>
+
+        <div>
+          <h3 style="color: var(--slate-900); margin-bottom: 0.5rem;">❓ What happens if my computer shuts down during a backup?</h3>
+          <p style="color: var(--slate-600);">Don't worry! The backup will automatically resume from where it left off the next time it runs. You won't lose any data.</p>
+        </div>
+
+        <div>
+          <h3 style="color: var(--slate-900); margin-bottom: 0.5rem;">❓ How do I know if my backups are working?</h3>
+          <p style="color: var(--slate-600);">Check the Dashboard. It shows your last backup time and recent activity. You can also click "View Logs" to see detailed history.</p>
+        </div>
+
+        <div>
+          <h3 style="color: var(--slate-900); margin-bottom: 0.5rem;">❓ What should I backup?</h3>
+          <p style="color: var(--slate-600);">Focus on irreplaceable files: Documents, Photos, Videos, Music, and any work files. You don't need to backup programs or system files.</p>
+        </div>
+
+        <div>
+          <h3 style="color: var(--slate-900); margin-bottom: 0.5rem;">❓ Can I restore my files if something goes wrong?</h3>
+          <p style="color: var(--slate-600);">Yes! Contact your IT support or check the main backup server website to download your backed-up files.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="help-section">
+      <h2 class="section-title">
+        <div class="section-icon"><i class="fas fa-lightbulb"></i></div>
+        Helpful Tips
+      </h2>
+
+      <div class="tip-box">
+        <div class="tip-icon"><i class="fas fa-check-circle" style="font-size: 1.5rem;"></i></div>
+        <div>
+          <strong>Schedule backups at night:</strong> Set automatic backups for 2:00 AM or 3:00 AM so they don't slow down your computer during the day.
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon"><i class="fas fa-check-circle" style="font-size: 1.5rem;"></i></div>
+        <div>
+          <strong>Leave your computer on:</strong> For automatic backups to work, your computer needs to be on (you can let it go to sleep, but don't shut it down).
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon"><i class="fas fa-check-circle" style="font-size: 1.5rem;"></i></div>
+        <div>
+          <strong>Check logs weekly:</strong> Take a quick look at the logs once a week to make sure your backups are running successfully.
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-icon"><i class="fas fa-check-circle" style="font-size: 1.5rem;"></i></div>
+        <div>
+          <strong>Run manual backup before big changes:</strong> Before updating Windows or installing new software, run a manual backup first.
+        </div>
+      </div>
+    </div>
+
+    <!-- Need More Help -->
+    <div class="help-section" style="text-align: center;">
+      <h2 class="section-title" style="justify-content: center;">
+        <div class="section-icon"><i class="fas fa-life-ring"></i></div>
+        Need More Help?
+      </h2>
+      <p style="color: var(--slate-600); margin-bottom: 1.5rem;">
+        If you're still having trouble or have questions, don't hesitate to ask for help!
+      </p>
+      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="/" class="btn">
+          <i class="fas fa-home"></i>
+          Back to Dashboard
+        </a>
+        <a href="/setup-windows" class="btn">
+          <i class="fab fa-windows"></i>
+          Windows Setup Guide
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
