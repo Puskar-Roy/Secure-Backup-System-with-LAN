@@ -608,7 +608,7 @@
                     <div class="source-path"><%= source %></div>
                   </div>
                 </div>
-                <button class="btn btn-primary" onclick="backupSource('<%= source %>')">
+                <button class="btn btn-primary backup-source-btn" data-source="<%= source %>">
                   <i class="fas fa-upload"></i>
                   Backup Now
                 </button>
@@ -821,8 +821,10 @@
       }
     }
 
-    async function backupSource(source) {
-      const btn = event.target.closest('button');
+    async function backupSource(source, btn) {
+      if (!btn) {
+        btn = event.target.closest('button');
+      }
       const originalHTML = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span> Starting...';
@@ -1026,6 +1028,17 @@ bash scripts/setup-autostart-linux.sh</pre>
       if (statusCheckInterval) {
         clearInterval(statusCheckInterval);
       }
+    });
+
+    // Use event delegation for backup buttons (safer for paths with special characters)
+    document.addEventListener('DOMContentLoaded', () => {
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.backup-source-btn');
+        if (btn) {
+          const source = btn.getAttribute('data-source');
+          backupSource(source, btn);
+        }
+      });
     });
   </script>
 </body>

@@ -64,12 +64,24 @@ class GUIServer {
   getDashboard(req, res) {
     const status = this.getBackupStatus();
     const config = this.config.getAll();
+    
+    // Normalize paths for JavaScript (replace backslashes with forward slashes)
+    if (status.sources) {
+      status.sources = status.sources.map(src => src.replace(/\\/g, '/'));
+    }
+    
     res.render('dashboard', { status, config });
   }
 
   getSettings(req, res) {
     const config = this.config.getAll();
-    const homeDir = require('os').homedir();
+    const homeDir = require('os').homedir().replace(/\\/g, '/');
+    
+    // Normalize backup sources paths
+    if (config.backup && config.backup.sources) {
+      config.backup.sources = config.backup.sources.map(src => src.replace(/\\/g, '/'));
+    }
+    
     res.render('settings', { config, homeDir });
   }
 
@@ -109,6 +121,10 @@ class GUIServer {
           message: 'Invalid configuration structure'
         });
       }
+
+      // On Windows, paths work fine with forward slashes, 
+      // but we can keep them as-is since Node.js handles both
+      // The GUI will always send forward slashes from JavaScript
 
       // Write directly to config.json
       fs.writeFileSync(this.configPath, JSON.stringify(newConfig, null, 2), 'utf8');
@@ -382,7 +398,8 @@ class GUIServer {
             const itemStats = fs.statSync(itemPath);
             return {
               name,
-              path: itemPath,
+              // Normalize to forward slashes for JavaScript compatibility
+              path: itemPath.replace(/\\/g, '/'),
               isDirectory: itemStats.isDirectory(),
               size: itemStats.size,
               modified: itemStats.mtime
@@ -395,12 +412,13 @@ class GUIServer {
         .sort((a, b) => a.name.localeCompare(b.name));
 
       const parent = resolvedPath !== path.parse(resolvedPath).root 
-        ? path.dirname(resolvedPath) 
+        ? path.dirname(resolvedPath).replace(/\\/g, '/') 
         : null;
 
       res.json({
         success: true,
-        currentPath: resolvedPath,
+        // Normalize current path to forward slashes
+        currentPath: resolvedPath.replace(/\\/g, '/'),
         parent,
         items
       });
