@@ -1011,16 +1011,16 @@ bash scripts/setup-autostart-linux.sh</pre>
         `;
       }
       
-      showAlert(\`
+      showAlert(`
         <div style="text-align: left;">
-          \${instructions}
+          ${instructions}
           <div style="margin-top: 1.5rem; padding: 1rem; background: var(--blue-50); border-left: 4px solid var(--blue-500); border-radius: 4px;">
             <strong><i class="fas fa-info-circle"></i> Important:</strong>
             <p style="margin-top: 0.5rem;">After setup, enable scheduled backups in <a href="/settings" style="color: var(--blue-600);">Settings</a>.</p>
             <p style="margin-top: 0.5rem;">Set <code>schedule.enabled = true</code> and add backup times like <code>["02:00", "14:00"]</code></p>
           </div>
         </div>
-      \`, 'info');
+      `, 'info');
     }
 
     // Clean up on page unload

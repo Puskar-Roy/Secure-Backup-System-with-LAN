@@ -7,6 +7,7 @@
   },
   "backup": {
     "sources": [
+      "/home/poolu/Downloads/Bus Routes Private _ Kolkata Bus-O-Pedia_files",
       "/home/poolu/Downloads/Bus Routes Private _ Kolkata Bus-O-Pedia_files"
     ],
     "exclusions": [
