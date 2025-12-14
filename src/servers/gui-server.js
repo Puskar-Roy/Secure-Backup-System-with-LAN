@@ -25,6 +25,12 @@ class GUIServer {
   }
 
   setupMiddleware() {
+    // Request logging
+    this.app.use((req, res, next) => {
+      console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+      next();
+    });
+    
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(express.static(path.join(__dirname, '../../public')));
@@ -136,12 +142,30 @@ class GUIServer {
       });
     }
 
-    // Validate source exists
+    // Validate source exists and resolve to absolute path
     const fs = require('fs');
-    if (!fs.existsSync(source)) {
+    const resolvedSource = path.resolve(source);
+    
+    if (!fs.existsSync(resolvedSource)) {
       return res.status(400).json({
         success: false,
         message: `Source path does not exist: ${source}`
+      });
+    }
+
+    // Check if it's a directory
+    try {
+      const stats = fs.statSync(resolvedSource);
+      if (!stats.isDirectory()) {
+        return res.status(400).json({
+          success: false,
+          message: `Source must be a directory: ${source}`
+        });
+      }
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot access source: ${err.message}`
       });
     }
 
@@ -166,10 +190,10 @@ class GUIServer {
       });
     }
 
-    this.logger.info('Starting backup via GUI', { source, clientPath });
+    this.logger.info('Starting backup via GUI', { source: resolvedSource, clientPath });
     
-    // Run client.js backup command
-    const backup = spawn('node', [clientPath, 'backup', source], {
+    // Run client.js backup command with absolute path
+    const backup = spawn('node', [clientPath, 'backup', resolvedSource], {
       cwd: path.join(__dirname, '../..'),
       env: { ...process.env, FORCE_COLOR: '0' },
       stdio: ['ignore', 'pipe', 'pipe']
@@ -180,7 +204,7 @@ class GUIServer {
     
     // Store backup info
     this.activeBackups.set(pid, {
-      source,
+      source: resolvedSource,
       status: 'running',
       startTime,
       output: '',
@@ -267,9 +291,9 @@ class GUIServer {
     // Send immediate response
     res.json({ 
       success: true, 
-      message: `Backup started for ${source}`,
+      message: `Backup started for ${resolvedSource}`,
       pid: pid,
-      source: source,
+      source: resolvedSource,
       status: 'running'
     });
   }

@@ -212,54 +212,151 @@ class BackupManager extends EventEmitter {
       klaw(root)
         .on('data', (item) => {
           try {
+            // Skip directories
             if (!item.stats.isFile()) return;
             
             const rel = path.relative(root, item.path).split(path.sep).join('/');
             
             // Skip excluded paths
             if (this.shouldExclude(rel)) {
-              this.logger.debug(`Excluded: ${rel}`);
+              this.logger.debug(`Excluded by pattern: ${rel}`);
               this.stats.skippedFiles++;
               return;
             }
 
-            // Check file accessibility
+            // Check file accessibility with detailed error handling
             try {
               fs.accessSync(item.path, fs.constants.R_OK);
+              
+              // Double-check file still exists
+              if (!fs.existsSync(item.path)) {
+                this.logger.warn(`File disappeared during scan: ${rel}`);
+                errors.push({ path: rel, error: 'File not found', code: 'ENOENT' });
+                this.stats.errorDetails.fileNotFound.push(rel);
+                this.stats.skippedFiles++;
+                return;
+              }
+              
               files.push({
                 fullpath: item.path,
                 relpath: rel,
                 size: item.stats.size,
                 mtime: item.stats.mtimeMs,
               });
+              this.stats.totalFiles++;
               this.stats.totalBytes += item.stats.size;
+              
             } catch (accessErr) {
-              this.logger.warn(`Cannot access file: ${rel}`, { error: accessErr.message });
-              errors.push({ path: rel, error: 'Access denied' });
+              // Categorize permission errors
+              if (accessErr.code === 'EACCES' || accessErr.code === 'EPERM') {
+                this.logger.warn(`⚠️  Permission denied: ${rel}`, { 
+                  error: accessErr.message,
+                  code: accessErr.code 
+                });
+                errors.push({ 
+                  path: rel, 
+                  error: 'Permission denied', 
+                  code: accessErr.code,
+                  details: accessErr.message 
+                });
+                this.stats.errorDetails.permissionDenied.push(rel);
+              } else if (accessErr.code === 'ENOENT') {
+                this.logger.warn(`⚠️  File not found: ${rel}`);
+                errors.push({ path: rel, error: 'File not found', code: 'ENOENT' });
+                this.stats.errorDetails.fileNotFound.push(rel);
+              } else {
+                this.logger.warn(`⚠️  Cannot access file: ${rel}`, { 
+                  error: accessErr.message,
+                  code: accessErr.code 
+                });
+                errors.push({ 
+                  path: rel, 
+                  error: accessErr.message, 
+                  code: accessErr.code 
+                });
+                this.stats.errorDetails.other.push({ path: rel, reason: accessErr.message });
+              }
               this.stats.skippedFiles++;
             }
           } catch (err) {
-            this.logger.error(`Error processing item: ${item.path}`, { error: err.message });
-            errors.push({ path: item.path, error: err.message });
-            this.stats.errors++;
+            // Handle any other unexpected errors during item processing
+            const itemPath = item?.path || 'unknown';
+            this.logger.warn(`⚠️  Error processing item: ${itemPath}`, { 
+              error: err.message,
+              code: err.code 
+            });
+            errors.push({ 
+              path: itemPath, 
+              error: err.message, 
+              code: err.code 
+            });
+            this.stats.errorDetails.other.push({ path: itemPath, reason: err.message });
+            this.stats.skippedFiles++;
           }
         })
         .on('end', async () => {
-          this.logger.info(`Scan complete. Found ${files.length} files, skipped ${errors.length}`);
+          this.logger.info(`📁 Scan complete: ${files.length} files found, ${errors.length} skipped`);
+          
+          if (errors.length > 0) {
+            this.logger.info(`⚠️  Access issues summary:`);
+            if (this.stats.errorDetails.permissionDenied.length > 0) {
+              this.logger.info(`   - Permission denied: ${this.stats.errorDetails.permissionDenied.length} files`);
+            }
+            if (this.stats.errorDetails.fileNotFound.length > 0) {
+              this.logger.info(`   - File not found: ${this.stats.errorDetails.fileNotFound.length} files`);
+            }
+            if (this.stats.errorDetails.other.length > 0) {
+              this.logger.info(`   - Other errors: ${this.stats.errorDetails.other.length} files`);
+            }
+          }
           
           // Compute hashes with error handling
+          this.logger.info(`🔐 Calculating file hashes...`);
+          let hashProgress = 0;
+          
           for (const f of files) {
             try {
               f.sha = await this.sha256OfFile(f.fullpath);
+              hashProgress++;
               this.stats.processedFiles++;
-              this.emit('progress', {
-                phase: 'scanning',
-                current: this.stats.processedFiles,
-                total: files.length
-              });
+              
+              if (hashProgress % 100 === 0 || hashProgress === files.length) {
+                this.emit('progress', {
+                  phase: 'hashing',
+                  current: hashProgress,
+                  total: files.length
+                });
+              }
             } catch (err) {
-              this.logger.error(`Hash calculation failed: ${f.relpath}`, { error: err.message });
-              errors.push({ path: f.relpath, error: 'Hash calculation failed' });
+              // Log hash calculation failures with details
+              if (err.code === 'EACCES' || err.code === 'EPERM') {
+                this.logger.warn(`⚠️  Permission denied during hash: ${f.relpath}`);
+                errors.push({ 
+                  path: f.relpath, 
+                  error: 'Permission denied during hash calculation', 
+                  code: err.code 
+                });
+                this.stats.errorDetails.permissionDenied.push(f.relpath);
+              } else if (err.code === 'ENOENT') {
+                this.logger.warn(`⚠️  File disappeared during hash: ${f.relpath}`);
+                errors.push({ path: f.relpath, error: 'File not found', code: 'ENOENT' });
+                this.stats.errorDetails.fileNotFound.push(f.relpath);
+              } else {
+                this.logger.warn(`⚠️  Hash calculation failed: ${f.relpath}`, { 
+                  error: err.message,
+                  code: err.code 
+                });
+                errors.push({ 
+                  path: f.relpath, 
+                  error: 'Hash calculation failed', 
+                  details: err.message,
+                  code: err.code 
+                });
+                this.stats.errorDetails.hashCalculationFailed.push({
+                  path: f.relpath,
+                  reason: err.message
+                });
+              }
               this.stats.errors++;
             }
           }
@@ -267,10 +364,16 @@ class BackupManager extends EventEmitter {
           // Filter out files that failed hash calculation
           const validFiles = files.filter(f => f.sha);
           
+          this.logger.info(`✅ Successfully processed: ${validFiles.length} files`);
+          if (files.length - validFiles.length > 0) {
+            this.logger.warn(`⚠️  Failed hash calculation: ${files.length - validFiles.length} files`);
+          }
+          
           resolve({ files: validFiles, errors });
         })
         .on('error', (err) => {
-          this.logger.error('Directory walk error', { error: err.message });
+          this.logger.error('❌ Directory walk error', { error: err.message, code: err.code });
+          this.stats.errorDetails.other.push({ path: root, reason: `Directory walk error: ${err.message}` });
           resolve({ files, errors });
         });
     });
@@ -338,11 +441,18 @@ class BackupManager extends EventEmitter {
         }
       } catch (err) {
         if (attempt === retries) {
-          this.logger.error(`Upload failed after ${retries} attempts: ${file.relpath}`, { error: err.message });
+          this.logger.error(`❌ Upload failed after ${retries} attempts: ${file.relpath}`, { 
+            error: err.message,
+            code: err.code 
+          });
           this.stats.errors++;
+          this.stats.errorDetails.uploadFailed.push({
+            path: file.relpath,
+            reason: err.message
+          });
           throw err;
         }
-        this.logger.warn(`Upload retry ${attempt}/${retries} for ${file.relpath}`);
+        this.logger.warn(`🔄 Upload retry ${attempt}/${retries} for ${file.relpath}`);
         await this.sleep(this.config.get('server.retryDelay') || 5000);
       }
     }
@@ -480,7 +590,14 @@ class BackupManager extends EventEmitter {
       uploadedFiles: 0,
       errors: 0,
       totalBytes: 0,
-      uploadedBytes: 0
+      uploadedBytes: 0,
+      errorDetails: {
+        permissionDenied: [],
+        fileNotFound: [],
+        hashCalculationFailed: [],
+        uploadFailed: [],
+        other: []
+      }
     };
   }
 
@@ -613,7 +730,29 @@ class BackupCLI {
       console.log(`   - Size: ${this.backupManager.formatSize(data.stats.uploadedBytes)}`);
       console.log(`   - Skipped: ${data.stats.skippedFiles}`);
       console.log(`   - Errors: ${data.stats.errors}`);
+      
+      // Show detailed error breakdown if any
+      if (data.stats.errorDetails) {
+        const details = data.stats.errorDetails;
+        if (details.permissionDenied.length > 0) {
+          console.log(`   - Permission denied: ${details.permissionDenied.length} files`);
+        }
+        if (details.fileNotFound.length > 0) {
+          console.log(`   - File not found: ${details.fileNotFound.length} files`);
+        }
+        if (details.hashCalculationFailed.length > 0) {
+          console.log(`   - Hash failed: ${details.hashCalculationFailed.length} files`);
+        }
+        if (details.uploadFailed.length > 0) {
+          console.log(`   - Upload failed: ${details.uploadFailed.length} files`);
+        }
+      }
+      
       console.log(`   - Duration: ${this.backupManager.formatDuration(data.duration)}`);
+      
+      if (data.errors && data.errors.length > 0) {
+        console.log(`\n⚠️  See logs for details on ${data.errors.length} skipped files`);
+      }
     });
 
     this.backupManager.on('failed', (data) => {

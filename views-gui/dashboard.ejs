@@ -865,7 +865,7 @@
       btn.innerHTML = '<span class="spinner"></span> Starting backups...';
 
       try {
-        const sources = <%= JSON.stringify(status.sources) %>;
+        const sources = <%- JSON.stringify(status.sources) %>;
         showProgress(true);
         
         let completed = 0;

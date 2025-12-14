@@ -565,8 +565,8 @@
   </div>
 
   <script>
-    let sources = <%= JSON.stringify(config?.backup?.sources || []) %>;
-    let times = <%= JSON.stringify(config?.schedule?.times || []) %>;
+    let sources = <%- JSON.stringify(config?.backup?.sources || []) %>;
+    let times = <%- JSON.stringify(config?.schedule?.times || []) %>;
 
     function showAlert(message, type = 'success') {
       const alertBox = document.getElementById('alertBox');
@@ -638,28 +638,46 @@
       btn.innerHTML = '<span class="spinner"></span> Saving...';
 
       try {
+        // Collect sources from DOM inputs
+        const sourceInputs = document.querySelectorAll('.source-input');
+        const collectedSources = [];
+        sourceInputs.forEach(input => {
+          const value = input.value.trim();
+          if (value) collectedSources.push(value);
+        });
+
+        // Collect times from DOM inputs
+        const timeInputs = document.querySelectorAll('.time-input');
+        const collectedTimes = [];
+        timeInputs.forEach(input => {
+          const value = input.value.trim();
+          if (value) collectedTimes.push(value);
+        });
+
         // Collect all form values
         const config = {
           server: {
-            url: document.getElementById('serverUrl').value,
-            timeout: parseInt(document.getElementById('serverTimeout').value),
-            retryAttempts: parseInt(document.getElementById('retryAttempts').value),
+            url: document.getElementById('serverUrl').value.trim(),
+            timeout: parseInt(document.getElementById('serverTimeout').value) || 60000,
+            retryAttempts: parseInt(document.getElementById('retryAttempts').value) || 3,
             retryDelay: 5000
           },
           backup: {
-            sources: sources.filter(s => s.trim()),
-            exclusions: <%= JSON.stringify(config?.backup?.exclusions || []) %>,
-            parallelUploads: parseInt(document.getElementById('parallelUploads').value),
+            sources: collectedSources,
+            exclusions: <%- JSON.stringify(config?.backup?.exclusions || []) %>,
+            parallelUploads: parseInt(document.getElementById('parallelUploads').value) || 3,
             chunkSize: 5242880
           },
           schedule: {
             enabled: document.getElementById('scheduleEnabled').checked,
-            times: times,
+            times: collectedTimes,
             timezone: 'local'
           },
-          retention: <%= JSON.stringify(config?.retention || {}) %>,
-          logging: <%= JSON.stringify(config?.logging || {}) %>
+          retention: <%- JSON.stringify(config?.retention || {}) %>,
+          logging: <%- JSON.stringify(config?.logging || {}) %>
         };
+
+        console.log('Saving config:', config);
 
         const response = await fetch('/api/config', {
           method: 'POST',
@@ -670,13 +688,14 @@
         const result = await response.json();
         
         if (result.success) {
-          showAlert('Settings saved successfully!', 'success');
+          showAlert('✅ Settings saved successfully!', 'success');
           setTimeout(() => window.location.href = '/', 1500);
         } else {
-          showAlert('Failed to save settings', 'error');
+          showAlert(`❌ Failed to save settings: ${result.message || 'Unknown error'}`, 'error');
         }
       } catch (err) {
-        showAlert(`Error: ${err.message}`, 'error');
+        console.error('Save error:', err);
+        showAlert(`❌ Error: ${err.message}`, 'error');
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-save"></i> Save Settings';
