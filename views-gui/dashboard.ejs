@@ -421,8 +421,16 @@
       border-radius: 8px;
       margin-bottom: 1rem;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 0.75rem;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .alert pre, .alert code {
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
     }
 
     .alert-info {
@@ -671,6 +679,19 @@
               </a>
             </div>
           </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--slate-200);">
+          <h3 style="font-size: 0.875rem; font-weight: 600; color: var(--slate-700); margin-bottom: 1rem;">
+            <i class="fas fa-rocket"></i> Automatic Startup
+          </h3>
+          <p style="font-size: 0.875rem; color: var(--slate-600); margin-bottom: 1rem;">
+            Run backups automatically when your computer starts
+          </p>
+          <button class="btn btn-success" onclick="setupAutostart()" style="width: 100%; justify-content: center;">
+            <i class="fas fa-cog"></i>
+            Setup Auto-Backup on Startup
+          </button>
         </div>
 
         <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--slate-200);">
@@ -936,6 +957,68 @@
         btn.disabled = false;
         btn.innerHTML = originalHTML;
       }
+    }
+
+    function setupAutostart() {
+      const isLinux = navigator.platform.toLowerCase().includes('linux');
+      const isWindows = navigator.platform.toLowerCase().includes('win');
+      const isMac = navigator.platform.toLowerCase().includes('mac');
+      
+      let instructions = '';
+      
+      if (isLinux) {
+        instructions = `
+          <h3><i class="fab fa-linux"></i> Linux Setup</h3>
+          <p>Run this command in terminal:</p>
+          <pre style="background: var(--slate-900); color: white; padding: 1rem; border-radius: 6px; overflow-x: auto;">cd "${window.location.origin.replace('http://', '').replace(':3000', '')}"
+bash scripts/setup-autostart-linux.sh</pre>
+          <p><strong>Or manually:</strong></p>
+          <ol style="text-align: left; padding-left: 1.5rem;">
+            <li>Open your terminal</li>
+            <li>Navigate to project directory</li>
+            <li>Run: <code>bash scripts/setup-autostart-linux.sh</code></li>
+            <li>Choose option 1 (User Autostart)</li>
+          </ol>
+        `;
+      } else if (isWindows) {
+        instructions = `
+          <h3><i class="fab fa-windows"></i> Windows Setup</h3>
+          <ol style="text-align: left; padding-left: 1.5rem;">
+            <li>Right-click on <code>scripts/setup-autostart-windows.bat</code></li>
+            <li>Select "Run as Administrator"</li>
+            <li>Follow the prompts</li>
+          </ol>
+          <p style="margin-top: 1rem;"><strong>Or use Task Scheduler:</strong></p>
+          <ol style="text-align: left; padding-left: 1.5rem;">
+            <li>Open Task Scheduler</li>
+            <li>Create Basic Task → "Backup Client"</li>
+            <li>Trigger: "When I log on"</li>
+            <li>Action: Start program → <code>node client.js daemon</code></li>
+            <li>Set working directory to project folder</li>
+          </ol>
+        `;
+      } else if (isMac) {
+        instructions = `
+          <h3><i class="fab fa-apple"></i> macOS Setup</h3>
+          <p>Create a Launch Agent:</p>
+          <ol style="text-align: left; padding-left: 1.5rem;">
+            <li>Create file: <code>~/Library/LaunchAgents/com.backup.client.plist</code></li>
+            <li>Add the plist configuration (see documentation)</li>
+            <li>Load with: <code>launchctl load ~/Library/LaunchAgents/com.backup.client.plist</code></li>
+          </ol>
+        `;
+      }
+      
+      showAlert(\`
+        <div style="text-align: left;">
+          \${instructions}
+          <div style="margin-top: 1.5rem; padding: 1rem; background: var(--blue-50); border-left: 4px solid var(--blue-500); border-radius: 4px;">
+            <strong><i class="fas fa-info-circle"></i> Important:</strong>
+            <p style="margin-top: 0.5rem;">After setup, enable scheduled backups in <a href="/settings" style="color: var(--blue-600);">Settings</a>.</p>
+            <p style="margin-top: 0.5rem;">Set <code>schedule.enabled = true</code> and add backup times like <code>["02:00", "14:00"]</code></p>
+          </div>
+        </div>
+      \`, 'info');
     }
 
     // Clean up on page unload
