@@ -54,6 +54,7 @@ class GUIServer {
     this.app.get('/api/backup-status/:pid', this.getBackupStatus.bind(this));
     this.app.get('/api/test-connection', this.testConnection.bind(this));
     this.app.get('/api/logs/:type', this.getAPILogs.bind(this));
+    this.app.get('/api/browse-folders', this.browseFolders.bind(this));
 
     // Store active backup processes
     this.activeBackups = new Map();
@@ -68,7 +69,8 @@ class GUIServer {
 
   getSettings(req, res) {
     const config = this.config.getAll();
-    res.render('settings', { config });
+    const homeDir = require('os').homedir();
+    res.render('settings', { config, homeDir });
   }
 
   getHelp(req, res) {
@@ -266,12 +268,15 @@ class GUIServer {
       const duration = Date.now() - startTime;
       const backupInfo = this.activeBackups.get(pid);
       
+      console.log(`[Backup ${pid}] Process exited with code ${code}`);
+      
       if (code === 0) {
         this.logger.info('Backup completed via GUI', { source, duration });
         if (backupInfo) {
           backupInfo.status = 'completed';
           backupInfo.progress = 100;
           backupInfo.duration = duration;
+          console.log(`[Backup ${pid}] Status updated to completed`);
         }
       } else {
         this.logger.error('Backup failed via GUI', { source, code, error: errorOutput });
@@ -279,6 +284,7 @@ class GUIServer {
           backupInfo.status = 'failed';
           backupInfo.exitCode = code;
           backupInfo.duration = duration;
+          console.log(`[Backup ${pid}] Status updated to failed`);
         }
       }
       
@@ -330,6 +336,8 @@ class GUIServer {
     const pid = parseInt(req.params.pid);
     const backupInfo = this.activeBackups.get(pid);
     
+    console.log(`[Status Check] PID ${pid}:`, backupInfo ? backupInfo.status : 'not found');
+    
     if (!backupInfo) {
       return res.json({
         success: false,
@@ -343,6 +351,65 @@ class GUIServer {
       ...backupInfo,
       duration: Date.now() - backupInfo.startTime
     });
+  }
+
+  browseFolders(req, res) {
+    const requestedPath = req.query.path || require('os').homedir();
+    
+    try {
+      // Security: only allow browsing real paths
+      const resolvedPath = path.resolve(requestedPath);
+      
+      if (!fs.existsSync(resolvedPath)) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Path does not exist' 
+        });
+      }
+
+      const stats = fs.statSync(resolvedPath);
+      if (!stats.isDirectory()) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Path is not a directory' 
+        });
+      }
+
+      const items = fs.readdirSync(resolvedPath)
+        .map(name => {
+          const itemPath = path.join(resolvedPath, name);
+          try {
+            const itemStats = fs.statSync(itemPath);
+            return {
+              name,
+              path: itemPath,
+              isDirectory: itemStats.isDirectory(),
+              size: itemStats.size,
+              modified: itemStats.mtime
+            };
+          } catch (err) {
+            return null;
+          }
+        })
+        .filter(item => item !== null && item.isDirectory)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      const parent = resolvedPath !== path.parse(resolvedPath).root 
+        ? path.dirname(resolvedPath) 
+        : null;
+
+      res.json({
+        success: true,
+        currentPath: resolvedPath,
+        parent,
+        items
+      });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        message: err.message
+      });
+    }
   }
 
   // Helper methods

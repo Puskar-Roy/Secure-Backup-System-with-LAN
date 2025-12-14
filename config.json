@@ -7,7 +7,7 @@
   },
   "backup": {
     "sources": [
-      "/media/poolu/UBUNTU/Personal Projects/Testing-Backup"
+      "/home/poolu/Downloads/Bus Routes Private _ Kolkata Bus-O-Pedia_files"
     ],
     "exclusions": [
       "**/node_modules/**",
