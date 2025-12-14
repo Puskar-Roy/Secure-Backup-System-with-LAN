@@ -2,10 +2,12 @@
  * GUI Server
  * User-friendly web interface for backup management
  * Port: 3000
+ * Uses client.js for all backup operations
  */
 
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const { spawn } = require('child_process');
 const ConfigManager = require('../lib/config-manager');
 const Logger = require('../lib/logger');
@@ -14,8 +16,10 @@ class GUIServer {
   constructor(port = 3000) {
     this.port = port;
     this.app = express();
-    this.config = new ConfigManager();
+    this.configPath = path.join(__dirname, '../../config.json');
+    this.config = new ConfigManager(this.configPath);
     this.logger = new Logger({ level: 'info' });
+    this.activeBackups = new Map();
     this.setupMiddleware();
     this.setupRoutes();
   }
@@ -41,8 +45,12 @@ class GUIServer {
     this.app.get('/api/config', this.getConfig.bind(this));
     this.app.post('/api/config', this.updateConfig.bind(this));
     this.app.post('/api/backup', this.startBackup.bind(this));
+    this.app.get('/api/backup-status/:pid', this.getBackupStatus.bind(this));
     this.app.get('/api/test-connection', this.testConnection.bind(this));
     this.app.get('/api/logs/:type', this.getAPILogs.bind(this));
+
+    // Store active backup processes
+    this.activeBackups = new Map();
   }
 
   // View handlers
@@ -83,12 +91,39 @@ class GUIServer {
   }
 
   updateConfig(req, res) {
-    const newConfig = req.body;
-    const success = this.config.update(newConfig);
-    res.json({ 
-      success, 
-      message: success ? 'Configuration saved' : 'Failed to save configuration' 
-    });
+    try {
+      const newConfig = req.body;
+      
+      // Validate config structure
+      if (!newConfig.server || !newConfig.backup) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid configuration structure'
+        });
+      }
+
+      // Write directly to config.json
+      fs.writeFileSync(this.configPath, JSON.stringify(newConfig, null, 2), 'utf8');
+      
+      // Reload config
+      this.config = new ConfigManager(this.configPath);
+      
+      this.logger.info('Configuration updated', { 
+        sources: newConfig.backup.sources?.length || 0,
+        scheduleEnabled: newConfig.schedule?.enabled 
+      });
+
+      res.json({ 
+        success: true, 
+        message: 'Configuration saved successfully' 
+      });
+    } catch (err) {
+      this.logger.error('Failed to save configuration', { error: err.message });
+      res.status(500).json({
+        success: false,
+        message: `Failed to save configuration: ${err.message}`
+      });
+    }
   }
 
   startBackup(req, res) {
@@ -101,35 +136,140 @@ class GUIServer {
       });
     }
 
-    // Start backup process
+    // Validate source exists
+    const fs = require('fs');
+    if (!fs.existsSync(source)) {
+      return res.status(400).json({
+        success: false,
+        message: `Source path does not exist: ${source}`
+      });
+    }
+
+    // Check if backup is already running for this source
+    for (const [pid, info] of this.activeBackups.entries()) {
+      if (info.source === source && info.status === 'running') {
+        return res.json({
+          success: false,
+          message: 'Backup already running for this source',
+          pid: pid
+        });
+      }
+    }
+
+    // Use client.js for backup
     const clientPath = path.join(__dirname, '../../client.js');
+    
+    if (!fs.existsSync(clientPath)) {
+      return res.status(500).json({
+        success: false,
+        message: 'client.js not found'
+      });
+    }
+
+    this.logger.info('Starting backup via GUI', { source, clientPath });
+    
+    // Run client.js backup command
     const backup = spawn('node', [clientPath, 'backup', source], {
-      cwd: path.join(__dirname, '../..')
+      cwd: path.join(__dirname, '../..'),
+      env: { ...process.env, FORCE_COLOR: '0' },
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    const pid = backup.pid;
+    const startTime = Date.now();
+    
+    // Store backup info
+    this.activeBackups.set(pid, {
+      source,
+      status: 'running',
+      startTime,
+      output: '',
+      error: '',
+      progress: 0
     });
 
     let output = '';
     let errorOutput = '';
 
     backup.stdout.on('data', (data) => {
-      output += data.toString();
-    });
-
-    backup.stderr.on('data', (data) => {
-      errorOutput += data.toString();
-    });
-
-    backup.on('close', (code) => {
-      if (code === 0) {
-        this.logger.info('Backup completed via GUI', { source });
-      } else {
-        this.logger.error('Backup failed via GUI', { source, code, error: errorOutput });
+      const text = data.toString();
+      output += text;
+      
+      // Update stored output
+      const backupInfo = this.activeBackups.get(pid);
+      if (backupInfo) {
+        backupInfo.output += text;
+        
+        // Extract progress from output
+        if (text.includes('Backup started')) {
+          backupInfo.progress = 10;
+        } else if (text.includes('Scanning files')) {
+          backupInfo.progress = 20;
+        } else if (text.includes('Found') && text.includes('files')) {
+          backupInfo.progress = 30;
+        } else if (text.includes('Server ready')) {
+          backupInfo.progress = 40;
+        } else if (text.includes('Uploading') || text.includes('Uploaded')) {
+          backupInfo.progress = Math.min(90, backupInfo.progress + 5);
+        } else if (text.includes('Committing backup')) {
+          backupInfo.progress = 95;
+        } else if (text.includes('Backup completed')) {
+          backupInfo.progress = 100;
+        }
       }
     });
 
-    // Send initial response
+    backup.stderr.on('data', (data) => {
+      const text = data.toString();
+      errorOutput += text;
+      
+      const backupInfo = this.activeBackups.get(pid);
+      if (backupInfo) {
+        backupInfo.error += text;
+      }
+    });
+
+    backup.on('error', (err) => {
+      this.logger.error('Failed to start backup process', { source, error: err.message });
+      const backupInfo = this.activeBackups.get(pid);
+      if (backupInfo) {
+        backupInfo.status = 'failed';
+        backupInfo.error = err.message;
+      }
+    });
+
+    backup.on('close', (code) => {
+      const duration = Date.now() - startTime;
+      const backupInfo = this.activeBackups.get(pid);
+      
+      if (code === 0) {
+        this.logger.info('Backup completed via GUI', { source, duration });
+        if (backupInfo) {
+          backupInfo.status = 'completed';
+          backupInfo.progress = 100;
+          backupInfo.duration = duration;
+        }
+      } else {
+        this.logger.error('Backup failed via GUI', { source, code, error: errorOutput });
+        if (backupInfo) {
+          backupInfo.status = 'failed';
+          backupInfo.exitCode = code;
+          backupInfo.duration = duration;
+        }
+      }
+      
+      // Clean up after 5 minutes
+      setTimeout(() => {
+        this.activeBackups.delete(pid);
+      }, 5 * 60 * 1000);
+    });
+
+    // Send immediate response
     res.json({ 
       success: true, 
-      message: 'Backup started',
+      message: `Backup started for ${source}`,
+      pid: pid,
+      source: source,
       status: 'running'
     });
   }
@@ -162,6 +302,25 @@ class GUIServer {
     res.json({ logs });
   }
 
+  getBackupStatus(req, res) {
+    const pid = parseInt(req.params.pid);
+    const backupInfo = this.activeBackups.get(pid);
+    
+    if (!backupInfo) {
+      return res.json({
+        success: false,
+        message: 'Backup process not found',
+        status: 'unknown'
+      });
+    }
+    
+    res.json({
+      success: true,
+      ...backupInfo,
+      duration: Date.now() - backupInfo.startTime
+    });
+  }
+
   // Helper methods
   getBackupStatus() {
     const config = this.config.getAll();
@@ -173,7 +332,8 @@ class GUIServer {
       scheduleEnabled: config?.schedule?.enabled || false,
       scheduleTimes: config?.schedule?.times || [],
       lastBackup: logs.length > 0 ? logs[logs.length - 1] : null,
-      recentBackups: logs
+      recentBackups: logs,
+      activeBackups: this.activeBackups ? this.activeBackups.size : 0
     };
   }
 
@@ -182,7 +342,10 @@ class GUIServer {
       console.log(`\n🎨 Backup Client GUI running at: http://localhost:${this.port}`);
       console.log(`📊 Dashboard: http://localhost:${this.port}`);
       console.log(`⚙️  Settings: http://localhost:${this.port}/settings`);
+      console.log(`📋 Logs: http://localhost:${this.port}/logs`);
       console.log(`❓ Help: http://localhost:${this.port}/help`);
+      console.log(`\n✅ All features integrated with client.js`);
+      console.log(`📁 Config file: ${this.configPath}`);
       console.log(`\nPress Ctrl+C to stop\n`);
     });
   }

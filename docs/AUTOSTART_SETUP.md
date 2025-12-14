@@ -1,6 +1,10 @@
-# Windows Autostart Setup Guide
+# Autostart Setup Guide (Windows & Linux)
 
-This guide will help you set up the backup server to start automatically when Windows boots.
+This guide will help you set up the backup system to start automatically when your computer boots.
+
+---
+
+# 🪟 Windows Autostart Setup
 
 ## Method 1: Startup Folder (Easiest)
 

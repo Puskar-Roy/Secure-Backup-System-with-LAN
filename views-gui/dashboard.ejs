@@ -728,6 +728,9 @@
   </div>
 
   <script>
+    let currentBackupPid = null;
+    let statusCheckInterval = null;
+
     function showAlert(message, type = 'info') {
       const alertBox = document.getElementById('alertBox');
       alertBox.className = `alert alert-${type}`;
@@ -737,17 +740,76 @@
       `;
       alertBox.classList.remove('hidden');
       
-      setTimeout(() => {
-        alertBox.classList.add('hidden');
-      }, 5000);
+      if (type === 'success' || type === 'error') {
+        setTimeout(() => {
+          alertBox.classList.add('hidden');
+        }, 5000);
+      }
+    }
+
+    function showProgress(show = true) {
+      const progressDiv = document.getElementById('backupProgress');
+      if (show) {
+        progressDiv.classList.remove('hidden');
+      } else {
+        progressDiv.classList.add('hidden');
+        document.getElementById('progressFill').style.width = '0%';
+        document.getElementById('progressText').textContent = '0%';
+      }
+    }
+
+    function updateProgress(percent, message = '') {
+      document.getElementById('progressFill').style.width = percent + '%';
+      document.getElementById('progressText').textContent = percent + '%';
+      if (message) {
+        document.querySelector('#backupProgress span').textContent = message;
+      }
+    }
+
+    async function checkBackupStatus(pid) {
+      try {
+        const response = await fetch(`/api/backup-status/${pid}`);
+        const result = await response.json();
+        
+        if (result.success) {
+          updateProgress(result.progress || 10, result.status === 'running' ? 'Backup in progress...' : result.status);
+          
+          if (result.status === 'completed') {
+            showAlert('✅ Backup completed successfully!', 'success');
+            showProgress(false);
+            if (statusCheckInterval) {
+              clearInterval(statusCheckInterval);
+              statusCheckInterval = null;
+            }
+            setTimeout(() => location.reload(), 2000);
+            return true;
+          } else if (result.status === 'failed') {
+            showAlert('❌ Backup failed: ' + (result.error || 'Unknown error'), 'error');
+            showProgress(false);
+            if (statusCheckInterval) {
+              clearInterval(statusCheckInterval);
+              statusCheckInterval = null;
+            }
+            return true;
+          }
+        }
+        return false;
+      } catch (err) {
+        console.error('Status check error:', err);
+        return false;
+      }
     }
 
     async function backupSource(source) {
       const btn = event.target.closest('button');
+      const originalHTML = btn.innerHTML;
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Backing up...';
+      btn.innerHTML = '<span class="spinner"></span> Starting...';
 
       try {
+        showProgress(true);
+        updateProgress(5, 'Initializing backup...');
+
         const response = await fetch('/api/backup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -757,28 +819,59 @@
         const result = await response.json();
         
         if (result.success) {
-          showAlert(`Backup started for: ${source}`, 'success');
-          setTimeout(() => location.reload(), 2000);
+          currentBackupPid = result.pid;
+          showAlert(`🚀 Backup started for: ${source}`, 'info');
+          updateProgress(10, 'Backup in progress...');
+          btn.innerHTML = '<span class="spinner"></span> Backing up...';
+          
+          // Start polling for status
+          statusCheckInterval = setInterval(async () => {
+            const completed = await checkBackupStatus(currentBackupPid);
+            if (completed) {
+              btn.disabled = false;
+              btn.innerHTML = originalHTML;
+            }
+          }, 2000); // Check every 2 seconds
+          
+          // Timeout after 30 minutes
+          setTimeout(() => {
+            if (statusCheckInterval) {
+              clearInterval(statusCheckInterval);
+              statusCheckInterval = null;
+              showAlert('⏱️ Backup is taking longer than expected. Check logs for details.', 'info');
+              showProgress(false);
+              btn.disabled = false;
+              btn.innerHTML = originalHTML;
+            }
+          }, 30 * 60 * 1000);
         } else {
-          showAlert(`Backup failed: ${result.message}`, 'error');
+          showAlert(`❌ ${result.message}`, 'error');
+          showProgress(false);
+          btn.disabled = false;
+          btn.innerHTML = originalHTML;
         }
       } catch (err) {
-        showAlert(`Error: ${err.message}`, 'error');
-      } finally {
+        showAlert(`❌ Error: ${err.message}`, 'error');
+        showProgress(false);
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-upload"></i> Backup Now';
+        btn.innerHTML = originalHTML;
       }
     }
 
     async function backupAll() {
       const btn = event.target;
+      const originalHTML = btn.innerHTML;
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Backing up all sources...';
+      btn.innerHTML = '<span class="spinner"></span> Starting backups...';
 
       try {
         const sources = <%= JSON.stringify(status.sources) %>;
+        showProgress(true);
         
+        let completed = 0;
         for (const source of sources) {
+          updateProgress((completed / sources.length) * 100, `Backing up ${source}...`);
+          
           const response = await fetch('/api/backup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -787,22 +880,48 @@
 
           const result = await response.json();
           if (!result.success) {
-            throw new Error(`Failed to backup ${source}`);
+            throw new Error(`Failed to backup ${source}: ${result.message}`);
           }
+          
+          // Wait for this backup to complete
+          const pid = result.pid;
+          let backupComplete = false;
+          
+          while (!backupComplete) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const statusResp = await fetch(`/api/backup-status/${pid}`);
+            const statusResult = await statusResp.json();
+            
+            if (statusResult.success) {
+              if (statusResult.status === 'completed') {
+                backupComplete = true;
+              } else if (statusResult.status === 'failed') {
+                throw new Error(`Backup failed for ${source}`);
+              }
+            }
+          }
+          
+          completed++;
         }
 
-        showAlert('All backups completed successfully!', 'success');
-        setTimeout(() => location.reload(), 2000);
+        updateProgress(100, 'All backups completed!');
+        showAlert('✅ All backups completed successfully!', 'success');
+        setTimeout(() => {
+          showProgress(false);
+          location.reload();
+        }, 2000);
       } catch (err) {
-        showAlert(`Error: ${err.message}`, 'error');
+        showAlert(`❌ Error: ${err.message}`, 'error');
+        showProgress(false);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-rocket"></i> Backup All Sources';
+        btn.innerHTML = originalHTML;
       }
     }
 
     async function testConnection() {
       const btn = event.target.closest('button');
+      const originalHTML = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span> Testing...';
 
@@ -812,12 +931,19 @@
         
         showAlert(result.message, result.success ? 'success' : 'error');
       } catch (err) {
-        showAlert(`Connection test failed: ${err.message}`, 'error');
+        showAlert(`❌ Connection test failed: ${err.message}`, 'error');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-plug"></i> Test';
+        btn.innerHTML = originalHTML;
       }
     }
+
+    // Clean up on page unload
+    window.addEventListener('beforeunload', () => {
+      if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+      }
+    });
   </script>
 </body>
 </html>
