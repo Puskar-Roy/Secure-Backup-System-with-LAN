@@ -7,7 +7,6 @@
   },
   "backup": {
     "sources": [
-      "/home/poolu/Downloads/Bus Routes Private _ Kolkata Bus-O-Pedia_files",
       "/home/poolu/Downloads/Bus Routes Private _ Kolkata Bus-O-Pedia_files"
     ],
     "exclusions": [
@@ -26,11 +25,9 @@
     "chunkSize": 5242880
   },
   "schedule": {
-    "enabled": false,
+    "enabled": true,
     "times": [
-      "02:00",
-      "14:00",
-      "22:00"
+      "01:09"
     ],
     "timezone": "local"
   },
