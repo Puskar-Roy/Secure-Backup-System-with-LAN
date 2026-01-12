@@ -789,16 +789,63 @@ class BackupCLI {
   }
 
   async backupNow(sourcePath) {
-    const source = sourcePath || this.configManager.get('backup.sources')?.[0];
+    let sources = [];
     
-    if (!source) {
+    if (sourcePath) {
+      // Single source specified
+      sources = [sourcePath];
+    } else {
+      // Use all configured sources
+      sources = this.configManager.get('backup.sources') || [];
+    }
+    
+    if (sources.length === 0) {
       console.error('❌ No backup source specified. Use: node client.js backup <path>');
       console.error('   Or configure sources in config.json');
       process.exit(1);
     }
 
-    console.log(`🚀 Starting immediate backup of: ${source}`);
-    await this.backupManager.runBackup(source);
+    if (sources.length === 1) {
+      console.log(`🚀 Starting immediate backup of: ${sources[0]}`);
+      await this.backupManager.runBackup(sources[0]);
+    } else {
+      console.log(`🚀 Starting backup of ${sources.length} sources...`);
+      console.log(`📁 Sources: ${sources.join(', ')}\n`);
+      
+      let successCount = 0;
+      let failCount = 0;
+      
+      for (let i = 0; i < sources.length; i++) {
+        const source = sources[i];
+        console.log(`\n[${ i + 1}/${sources.length}] 📦 Backing up: ${source}`);
+        console.log('━'.repeat(80));
+        
+        try {
+          const result = await this.backupManager.runBackup(source);
+          if (result.success) {
+            successCount++;
+            console.log(`\n✅ Backup ${i + 1} completed successfully!`);
+          } else {
+            failCount++;
+            console.log(`\n❌ Backup ${i + 1} failed: ${result.message}`);
+          }
+        } catch (err) {
+          failCount++;
+          console.log(`\n❌ Backup ${i + 1} failed with error: ${err.message}`);
+        }
+        
+        console.log('━'.repeat(80));
+      }
+      
+      console.log(`\n\n📊 Backup Summary:`);
+      console.log(`   ✅ Successful: ${successCount}/${sources.length}`);
+      console.log(`   ❌ Failed: ${failCount}/${sources.length}`);
+      
+      if (failCount > 0) {
+        console.log(`\n⚠️  Some backups failed. Check logs for details.`);
+      }
+    }
+    
     process.exit(0);
   }
 

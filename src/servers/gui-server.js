@@ -151,50 +151,66 @@ class GUIServer {
   }
 
   startBackup(req, res) {
-    const { source } = req.body;
+    const { source, sources } = req.body;
     
-    if (!source) {
+    // Support both single source and multiple sources
+    let backupSources = [];
+    if (sources && Array.isArray(sources)) {
+      backupSources = sources;
+    } else if (source) {
+      backupSources = [source];
+    }
+    
+    if (backupSources.length === 0) {
       return res.status(400).json({ 
         success: false, 
-        message: 'No backup source specified' 
+        message: 'No backup source(s) specified' 
       });
     }
 
-    // Validate source exists and resolve to absolute path
+    // Validate all sources exist
     const fs = require('fs');
-    const resolvedSource = path.resolve(source);
+    const invalidSources = [];
+    const resolvedSources = [];
     
-    if (!fs.existsSync(resolvedSource)) {
-      return res.status(400).json({
-        success: false,
-        message: `Source path does not exist: ${source}`
-      });
-    }
-
-    // Check if it's a directory
-    try {
-      const stats = fs.statSync(resolvedSource);
-      if (!stats.isDirectory()) {
-        return res.status(400).json({
-          success: false,
-          message: `Source must be a directory: ${source}`
-        });
+    for (const src of backupSources) {
+      const resolvedSource = path.resolve(src);
+      
+      if (!fs.existsSync(resolvedSource)) {
+        invalidSources.push({ path: src, reason: 'Path does not exist' });
+        continue;
       }
-    } catch (err) {
+      
+      try {
+        const stats = fs.statSync(resolvedSource);
+        if (!stats.isDirectory()) {
+          invalidSources.push({ path: src, reason: 'Not a directory' });
+          continue;
+        }
+        resolvedSources.push(resolvedSource);
+      } catch (err) {
+        invalidSources.push({ path: src, reason: `Cannot access: ${err.message}` });
+      }
+    }
+    
+    if (invalidSources.length > 0) {
       return res.status(400).json({
         success: false,
-        message: `Cannot access source: ${err.message}`
+        message: 'Some sources are invalid',
+        invalidSources
       });
     }
 
-    // Check if backup is already running for this source
+    // Check if backup is already running for any source
     for (const [pid, info] of this.activeBackups.entries()) {
-      if (info.source === source && info.status === 'running') {
-        return res.json({
-          success: false,
-          message: 'Backup already running for this source',
-          pid: pid
-        });
+      for (const src of resolvedSources) {
+        if (info.source === src && info.status === 'running') {
+          return res.json({
+            success: false,
+            message: `Backup already running for: ${src}`,
+            pid: pid
+          });
+        }
       }
     }
 
@@ -208,10 +224,20 @@ class GUIServer {
       });
     }
 
-    this.logger.info('Starting backup via GUI', { source: resolvedSource, clientPath });
+    this.logger.info('Starting backup via GUI', { 
+      sources: resolvedSources, 
+      clientPath,
+      count: resolvedSources.length 
+    });
     
-    // Run client.js backup command with absolute path
-    const backup = spawn('node', [clientPath, 'backup', resolvedSource], {
+    // Run client.js backup command with all sources
+    const args = ['backup'];
+    if (resolvedSources.length === 1) {
+      args.push(resolvedSources[0]);
+    }
+    // If multiple sources, client.js will use all configured sources from config.json
+    
+    const backup = spawn('node', [clientPath, ...args], {
       cwd: path.join(__dirname, '../..'),
       env: { ...process.env, FORCE_COLOR: '0' },
       stdio: ['ignore', 'pipe', 'pipe']
@@ -222,12 +248,15 @@ class GUIServer {
     
     // Store backup info
     this.activeBackups.set(pid, {
-      source: resolvedSource,
+      source: resolvedSources.length === 1 ? resolvedSources[0] : 'Multiple sources',
+      sources: resolvedSources,
       status: 'running',
       startTime,
       output: '',
       error: '',
-      progress: 0
+      progress: 0,
+      totalSources: resolvedSources.length,
+      completedSources: 0
     });
 
     let output = '';
@@ -243,20 +272,27 @@ class GUIServer {
         backupInfo.output += text;
         
         // Extract progress from output
-        if (text.includes('Backup started')) {
-          backupInfo.progress = 10;
+        if (text.includes('Backup started') || text.includes('Starting backup')) {
+          backupInfo.progress = Math.max(backupInfo.progress, 10);
         } else if (text.includes('Scanning files')) {
-          backupInfo.progress = 20;
+          backupInfo.progress = Math.max(backupInfo.progress, 20);
         } else if (text.includes('Found') && text.includes('files')) {
-          backupInfo.progress = 30;
+          backupInfo.progress = Math.max(backupInfo.progress, 30);
         } else if (text.includes('Server ready')) {
-          backupInfo.progress = 40;
+          backupInfo.progress = Math.max(backupInfo.progress, 40);
         } else if (text.includes('Uploading') || text.includes('Uploaded')) {
-          backupInfo.progress = Math.min(90, backupInfo.progress + 5);
+          backupInfo.progress = Math.min(90, backupInfo.progress + 2);
         } else if (text.includes('Committing backup')) {
-          backupInfo.progress = 95;
+          backupInfo.progress = Math.max(backupInfo.progress, 95);
         } else if (text.includes('Backup completed')) {
-          backupInfo.progress = 100;
+          // If backing up multiple sources, increment completed count
+          if (backupInfo.totalSources > 1) {
+            backupInfo.completedSources++;
+            const percentPerSource = 100 / backupInfo.totalSources;
+            backupInfo.progress = Math.floor(backupInfo.completedSources * percentPerSource);
+          } else {
+            backupInfo.progress = 100;
+          }
         }
       }
     });
@@ -272,7 +308,7 @@ class GUIServer {
     });
 
     backup.on('error', (err) => {
-      this.logger.error('Failed to start backup process', { source, error: err.message });
+      this.logger.error('Failed to start backup process', { sources: resolvedSources, error: err.message });
       const backupInfo = this.activeBackups.get(pid);
       if (backupInfo) {
         backupInfo.status = 'failed';
@@ -287,7 +323,7 @@ class GUIServer {
       console.log(`[Backup ${pid}] Process exited with code ${code}`);
       
       if (code === 0) {
-        this.logger.info('Backup completed via GUI', { source, duration });
+        this.logger.info('Backup completed via GUI', { sources: resolvedSources, duration });
         if (backupInfo) {
           backupInfo.status = 'completed';
           backupInfo.progress = 100;
@@ -295,7 +331,7 @@ class GUIServer {
           console.log(`[Backup ${pid}] Status updated to completed`);
         }
       } else {
-        this.logger.error('Backup failed via GUI', { source, code, error: errorOutput });
+        this.logger.error('Backup failed via GUI', { sources: resolvedSources, code, error: errorOutput });
         if (backupInfo) {
           backupInfo.status = 'failed';
           backupInfo.exitCode = code;
@@ -311,11 +347,17 @@ class GUIServer {
     });
 
     // Send immediate response
+    const displaySource = resolvedSources.length === 1 
+      ? resolvedSources[0] 
+      : `${resolvedSources.length} sources`;
+    
     res.json({ 
       success: true, 
-      message: `Backup started for ${resolvedSource}`,
+      message: `Backup started for ${displaySource}`,
       pid: pid,
-      source: resolvedSource,
+      source: resolvedSources.length === 1 ? resolvedSources[0] : 'Multiple sources',
+      sources: resolvedSources,
+      count: resolvedSources.length,
       status: 'running'
     });
   }

@@ -598,16 +598,18 @@
           </div>
         <% } else { %>
           <div class="backup-sources">
-            <% status.sources.forEach(source => { %>
+            <% status.sources.forEach((source, index) => { %>
               <div class="source-item">
-                <div class="source-info">
+                <label class="source-info" style="cursor: pointer; flex: 1;">
+                  <input type="checkbox" class="source-checkbox" value="<%= source %>" 
+                         style="margin-right: 0.75rem; width: 18px; height: 18px; cursor: pointer;">
                   <div class="source-icon">
                     <i class="fas fa-folder"></i>
                   </div>
                   <div>
                     <div class="source-path"><%= source %></div>
                   </div>
-                </div>
+                </label>
                 <button class="btn btn-primary backup-source-btn" data-source="<%= source %>">
                   <i class="fas fa-upload"></i>
                   Backup Now
@@ -616,9 +618,20 @@
             <% }) %>
           </div>
 
-          <button class="btn btn-success backup-all" onclick="backupAll()">
+          <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+            <button class="btn btn-secondary" onclick="selectAllSources()" style="flex: 1;">
+              <i class="fas fa-check-square"></i>
+              Select All
+            </button>
+            <button class="btn btn-secondary" onclick="deselectAllSources()" style="flex: 1;">
+              <i class="fas fa-square"></i>
+              Deselect All
+            </button>
+          </div>
+
+          <button class="btn btn-success backup-all" onclick="backupSelected()" style="margin-top: 1rem;">
             <i class="fas fa-rocket"></i>
-            Backup All Sources
+            Backup Selected Sources
           </button>
         <% } %>
 
@@ -787,6 +800,19 @@
       }
     }
 
+    function selectAllSources() {
+      document.querySelectorAll('.source-checkbox').forEach(cb => cb.checked = true);
+    }
+
+    function deselectAllSources() {
+      document.querySelectorAll('.source-checkbox').forEach(cb => cb.checked = false);
+    }
+
+    function getSelectedSources() {
+      const checkboxes = document.querySelectorAll('.source-checkbox:checked');
+      return Array.from(checkboxes).map(cb => cb.value);
+    }
+
     async function checkBackupStatus(pid) {
       try {
         const response = await fetch(`/api/backup-status/${pid}`);
@@ -881,62 +907,69 @@
       }
     }
 
-    async function backupAll() {
+    async function backupSelected() {
+      const selectedSources = getSelectedSources();
+      
+      if (selectedSources.length === 0) {
+        showAlert('⚠️ Please select at least one source to backup', 'error');
+        return;
+      }
+
       const btn = event.target;
       const originalHTML = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span> Starting backups...';
 
       try {
-        const sources = <%- JSON.stringify(status.sources) %>;
         showProgress(true);
+        updateProgress(5, `Starting backup of ${selectedSources.length} source(s)...`);
+
+        const response = await fetch('/api/backup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sources: selectedSources })
+        });
+
+        const result = await response.json();
         
-        let completed = 0;
-        for (const source of sources) {
-          updateProgress((completed / sources.length) * 100, `Backing up ${source}...`);
+        if (result.success) {
+          currentBackupPid = result.pid;
+          const sourceText = selectedSources.length === 1 
+            ? selectedSources[0] 
+            : `${selectedSources.length} sources`;
+          showAlert(`🚀 Backup started for: ${sourceText}`, 'info');
+          updateProgress(10, 'Backup in progress...');
+          btn.innerHTML = '<span class="spinner"></span> Backing up...';
           
-          const response = await fetch('/api/backup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ source })
-          });
-
-          const result = await response.json();
-          if (!result.success) {
-            throw new Error(`Failed to backup ${source}: ${result.message}`);
-          }
-          
-          // Wait for this backup to complete
-          const pid = result.pid;
-          let backupComplete = false;
-          
-          while (!backupComplete) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            const statusResp = await fetch(`/api/backup-status/${pid}`);
-            const statusResult = await statusResp.json();
-            
-            if (statusResult.success) {
-              if (statusResult.status === 'completed') {
-                backupComplete = true;
-              } else if (statusResult.status === 'failed') {
-                throw new Error(`Backup failed for ${source}`);
-              }
+          // Start polling for status
+          statusCheckInterval = setInterval(async () => {
+            const completed = await checkBackupStatus(currentBackupPid);
+            if (completed) {
+              btn.disabled = false;
+              btn.innerHTML = originalHTML;
             }
-          }
+          }, 2000);
           
-          completed++;
-        }
-
-        updateProgress(100, 'All backups completed!');
-        showAlert('✅ All backups completed successfully!', 'success');
-        setTimeout(() => {
+          // Timeout after 60 minutes for multiple sources
+          setTimeout(() => {
+            if (statusCheckInterval) {
+              clearInterval(statusCheckInterval);
+              statusCheckInterval = null;
+              showAlert('⏱️ Backup is taking longer than expected. Check logs for details.', 'info');
+              showProgress(false);
+              btn.disabled = false;
+              btn.innerHTML = originalHTML;
+            }
+          }, 60 * 60 * 1000);
+        } else {
+          showAlert(`❌ ${result.message}`, 'error');
           showProgress(false);
-          location.reload();
-        }, 2000);
+          btn.disabled = false;
+          btn.innerHTML = originalHTML;
+        }
       } catch (err) {
         showAlert(`❌ Error: ${err.message}`, 'error');
         showProgress(false);
-      } finally {
         btn.disabled = false;
         btn.innerHTML = originalHTML;
       }
@@ -1039,6 +1072,9 @@ bash scripts/setup-autostart-linux.sh</pre>
           backupSource(source, btn);
         }
       });
+      
+      // Select all by default on page load
+      selectAllSources();
     });
   </script>
 </body>
