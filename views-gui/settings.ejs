@@ -346,6 +346,148 @@
       border-radius: 4px;
       font-size: 0.875rem;
     }
+
+    /* Modal Styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.hidden {
+      display: none;
+    }
+
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+      position: relative;
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 700px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--slate-200);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--slate-900);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-close {
+      background: none;
+      border: none;
+      color: var(--slate-500);
+      cursor: pointer;
+      font-size: 1.25rem;
+      padding: 0.25rem;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+
+    .btn-close:hover {
+      background: var(--slate-100);
+      color: var(--slate-900);
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .modal-footer {
+      padding: 1.5rem;
+      border-top: 1px solid var(--slate-200);
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+    }
+
+    .path-bar {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .path-bar input {
+      flex: 1;
+    }
+
+    .folder-list {
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .folder-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--slate-100);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .folder-item:last-child {
+      border-bottom: none;
+    }
+
+    .folder-item:hover {
+      background: var(--slate-50);
+    }
+
+    .folder-item i {
+      color: var(--blue-500);
+      font-size: 1.25rem;
+    }
+
+    .folder-name {
+      flex: 1;
+      font-weight: 500;
+      color: var(--slate-900);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: var(--slate-500);
+    }
   </style>
 </head>
 <body>
@@ -443,6 +585,36 @@
         <% } %>
       </div>
       <div class="form-help">Example: /home/user/documents or C:\Users\Name\Documents</div>
+    </div>
+
+    <!-- Folder Browser Modal -->
+    <div id="folderBrowserModal" class="modal hidden">
+      <div class="modal-overlay" onclick="closeFolderBrowser()"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="fas fa-folder-open"></i> Select Folder</h3>
+          <button class="btn-close" onclick="closeFolderBrowser()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="path-bar">
+            <input type="text" id="currentPath" readonly class="form-input">
+            <button class="btn btn-secondary" onclick="goToParent()">
+              <i class="fas fa-level-up-alt"></i> Up
+            </button>
+          </div>
+          <div id="folderList" class="folder-list">
+            <div class="loading">Loading folders...</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeFolderBrowser()">Cancel</button>
+          <button class="btn btn-success" onclick="selectCurrentFolder()">
+            <i class="fas fa-check"></i> Select This Folder
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Schedule Settings -->
@@ -565,8 +737,8 @@
   </div>
 
   <script>
-    let sources = <%= JSON.stringify(config?.backup?.sources || []) %>;
-    let times = <%= JSON.stringify(config?.schedule?.times || []) %>;
+    let sources = <%- JSON.stringify(config?.backup?.sources || []) %>;
+    let times = <%- JSON.stringify(config?.schedule?.times || []) %>;
 
     function showAlert(message, type = 'success') {
       const alertBox = document.getElementById('alertBox');
@@ -583,10 +755,80 @@
     }
 
     function addSource() {
-      const newSource = prompt('Enter folder path to backup:');
-      if (newSource) {
-        sources.push(newSource);
+      openFolderBrowser();
+    }
+
+    let currentBrowsePath = null;
+
+    async function openFolderBrowser() {
+      const modal = document.getElementById('folderBrowserModal');
+      modal.classList.remove('hidden');
+      
+      // Start from home directory
+      const homeDir = '<%= homeDir %>';
+      await browseTo(homeDir);
+    }
+
+    function closeFolderBrowser() {
+      const modal = document.getElementById('folderBrowserModal');
+      modal.classList.add('hidden');
+      currentBrowsePath = null;
+    }
+
+    async function browseTo(path) {
+      currentBrowsePath = path;
+      document.getElementById('currentPath').value = path;
+      
+      const folderList = document.getElementById('folderList');
+      folderList.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading folders...</div>';
+      
+      try {
+        const response = await fetch(`/api/browse-folders?path=${encodeURIComponent(path)}`);
+        const result = await response.json();
+        
+        if (result.success) {
+          if (result.items.length === 0) {
+            folderList.innerHTML = '<div class="loading">No folders in this directory</div>';
+          } else {
+            folderList.innerHTML = result.items.map(item => `
+              <div class="folder-item" onclick="browseTo('${item.path.replace(/'/g, "\\'")}')">
+                <i class="fas fa-folder"></i>
+                <span class="folder-name">${item.name}</span>
+              </div>
+            `).join('');
+          }
+        } else {
+          folderList.innerHTML = `<div class="loading" style="color: var(--red-500);">
+            <i class="fas fa-exclamation-triangle"></i> ${result.message}
+          </div>`;
+        }
+      } catch (err) {
+        folderList.innerHTML = `<div class="loading" style="color: var(--red-500);">
+          <i class="fas fa-exclamation-triangle"></i> Error: ${err.message}
+        </div>`;
+      }
+    }
+
+    async function goToParent() {
+      if (!currentBrowsePath) return;
+      
+      try {
+        const response = await fetch(`/api/browse-folders?path=${encodeURIComponent(currentBrowsePath)}`);
+        const result = await response.json();
+        
+        if (result.success && result.parent) {
+          await browseTo(result.parent);
+        }
+      } catch (err) {
+        console.error('Failed to go to parent:', err);
+      }
+    }
+
+    function selectCurrentFolder() {
+      if (currentBrowsePath) {
+        sources.push(currentBrowsePath);
         renderSources();
+        closeFolderBrowser();
       }
     }
 
@@ -638,28 +880,46 @@
       btn.innerHTML = '<span class="spinner"></span> Saving...';
 
       try {
+        // Collect sources from DOM inputs
+        const sourceInputs = document.querySelectorAll('.source-input');
+        const collectedSources = [];
+        sourceInputs.forEach(input => {
+          const value = input.value.trim();
+          if (value) collectedSources.push(value);
+        });
+
+        // Collect times from DOM inputs
+        const timeInputs = document.querySelectorAll('.time-input');
+        const collectedTimes = [];
+        timeInputs.forEach(input => {
+          const value = input.value.trim();
+          if (value) collectedTimes.push(value);
+        });
+
         // Collect all form values
         const config = {
           server: {
-            url: document.getElementById('serverUrl').value,
-            timeout: parseInt(document.getElementById('serverTimeout').value),
-            retryAttempts: parseInt(document.getElementById('retryAttempts').value),
+            url: document.getElementById('serverUrl').value.trim(),
+            timeout: parseInt(document.getElementById('serverTimeout').value) || 60000,
+            retryAttempts: parseInt(document.getElementById('retryAttempts').value) || 3,
             retryDelay: 5000
           },
           backup: {
-            sources: sources.filter(s => s.trim()),
-            exclusions: <%= JSON.stringify(config?.backup?.exclusions || []) %>,
-            parallelUploads: parseInt(document.getElementById('parallelUploads').value),
+            sources: collectedSources,
+            exclusions: <%- JSON.stringify(config?.backup?.exclusions || []) %>,
+            parallelUploads: parseInt(document.getElementById('parallelUploads').value) || 3,
             chunkSize: 5242880
           },
           schedule: {
             enabled: document.getElementById('scheduleEnabled').checked,
-            times: times,
+            times: collectedTimes,
             timezone: 'local'
           },
-          retention: <%= JSON.stringify(config?.retention || {}) %>,
-          logging: <%= JSON.stringify(config?.logging || {}) %>
+          retention: <%- JSON.stringify(config?.retention || {}) %>,
+          logging: <%- JSON.stringify(config?.logging || {}) %>
         };
+
+        console.log('Saving config:', config);
 
         const response = await fetch('/api/config', {
           method: 'POST',
@@ -670,13 +930,14 @@
         const result = await response.json();
         
         if (result.success) {
-          showAlert('Settings saved successfully!', 'success');
+          showAlert('✅ Settings saved successfully!', 'success');
           setTimeout(() => window.location.href = '/', 1500);
         } else {
-          showAlert('Failed to save settings', 'error');
+          showAlert(`❌ Failed to save settings: ${result.message || 'Unknown error'}`, 'error');
         }
       } catch (err) {
-        showAlert(`Error: ${err.message}`, 'error');
+        console.error('Save error:', err);
+        showAlert(`❌ Error: ${err.message}`, 'error');
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-save"></i> Save Settings';
